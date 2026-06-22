@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { signIn } from "@/app/login/actions";
+import { hasSupabasePublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function LoginPage({
@@ -7,6 +8,23 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<{ message?: string }>;
 }) {
+  if (!hasSupabasePublicEnv()) {
+    return (
+      <main className="shell">
+        <aside className="sidebar">
+          <h1 className="brand">X Analyst</h1>
+          <p className="muted">Magic-link authentication via Supabase.</p>
+        </aside>
+        <section className="main">
+          <p className="notice">
+            Supabase is not configured yet. Add the values from `.env.example`
+            to `.env.local`, then restart the dev server.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
 

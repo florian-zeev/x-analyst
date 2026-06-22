@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { hasSupabasePublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
-  const supabase = await createClient();
-  const { data } = await supabase.auth.getClaims();
+  if (hasSupabasePublicEnv()) {
+    const supabase = await createClient();
+    const { data } = await supabase.auth.getClaims();
 
-  if (data?.claims) {
-    redirect("/dashboard");
+    if (data?.claims) {
+      redirect("/dashboard");
+    }
   }
 
   return (
@@ -33,6 +36,13 @@ export default async function Home() {
             Sign in
           </Link>
         </div>
+        {!hasSupabasePublicEnv() ? (
+          <p className="notice">
+            Supabase is not configured yet. Copy `.env.example` to `.env.local`
+            and fill in the public Supabase URL and publishable key before
+            signing in.
+          </p>
+        ) : null}
         <div className="grid">
           <section className="panel">
             <h2>Sources</h2>
