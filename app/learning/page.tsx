@@ -35,7 +35,22 @@ export default async function LearningPage() {
       <div className="grid">
         <section className="panel">
           <h2>Current learning summary</h2>
-          <p className="muted">{learning.summary}</p>
+          <div className="learning-summary">
+            <div className="learning-counts">
+              <div>
+                <span>{learning.moreCount}</span>
+                <p>More-like-this</p>
+              </div>
+              <div>
+                <span>{learning.lessCount}</span>
+                <p>Less-like-this</p>
+              </div>
+            </div>
+            <LearningGroup title="Prefer labels" values={learning.moreTags} />
+            <LearningGroup title="Down-rank labels" values={learning.lessTags} />
+            <LearningGroup title="Prefer sources" values={learning.moreSources} />
+            <LearningGroup title="Down-rank sources" values={learning.lessSources} />
+          </div>
         </section>
         <section className="panel">
           <h2>Strongest labels</h2>
@@ -89,5 +104,28 @@ export default async function LearningPage() {
         )}
       </section>
     </AppShell>
+  );
+}
+
+function LearningGroup({
+  title,
+  values
+}: {
+  title: string;
+  values: string[];
+}) {
+  return (
+    <div className="learning-group">
+      <h3>{title}</h3>
+      {values.length ? (
+        <div className="learning-pill-list">
+          {values.map((value) => (
+            <span key={value}>{value}</span>
+          ))}
+        </div>
+      ) : (
+        <p className="muted">None yet</p>
+      )}
+    </div>
   );
 }

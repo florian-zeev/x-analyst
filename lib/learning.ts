@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type LearningContext = {
   summary: string;
+  moreCount: number;
+  lessCount: number;
   moreTags: string[];
   lessTags: string[];
   moreSources: string[];
@@ -60,6 +62,8 @@ export async function getLearningContext(userId: string): Promise<LearningContex
     ]
       .filter(Boolean)
       .join(" "),
+    moreCount: more.length,
+    lessCount: less.length,
     moreTags,
     lessTags,
     moreSources,
@@ -71,6 +75,8 @@ export async function getLearningContext(userId: string): Promise<LearningContex
 function emptyLearningContext(summary: string): LearningContext {
   return {
     summary,
+    moreCount: 0,
+    lessCount: 0,
     moreTags: [],
     lessTags: [],
     moreSources: [],
