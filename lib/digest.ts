@@ -46,6 +46,14 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     throw error;
   }
 
+  await storeDigestItemsForBrief({
+    digestId: digest.id,
+    userId: profile.userId,
+    subject,
+    createdAt: digest.created_at,
+    brief
+  });
+
   const deliveryEmail = profile.digestEmail ?? profile.email;
   let sentAt: string | null = null;
   let emailError: string | null = null;
@@ -78,6 +86,53 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     sentAt,
     emailError
   };
+}
+
+export async function storeDigestItemsForBrief({
+  digestId,
+  userId,
+  subject,
+  createdAt,
+  brief
+}: {
+  digestId: string;
+  userId: string;
+  subject: string;
+  createdAt: string;
+  brief: DailyBrief;
+}) {
+  const rows = brief.sections.flatMap((section) =>
+    section.items.map((item) => ({
+      digest_id: digestId,
+      user_id: userId,
+      digest_subject: subject,
+      digest_created_at: createdAt,
+      section_title: section.title,
+      title: item.title,
+      source_label: item.sourceLabel,
+      url: item.url,
+      via_handle: item.viaHandle,
+      via_url: item.viaUrl,
+      source_type: item.sourceType,
+      why: item.why,
+      takeaway: item.takeaway,
+      tags: item.tags
+    }))
+  );
+
+  if (!rows.length) {
+    return;
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("digest_items").upsert(rows, {
+    ignoreDuplicates: true,
+    onConflict: "digest_id,section_title,url,title"
+  });
+
+  if (error) {
+    throw error;
+  }
 }
 
 async function collectArticles(posts: XPost[]) {

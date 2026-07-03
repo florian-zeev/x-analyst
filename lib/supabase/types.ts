@@ -69,6 +69,59 @@ export type Database = {
         };
         Relationships: [];
       };
+      digest_items: {
+        Row: {
+          id: string;
+          digest_id: string;
+          user_id: string;
+          digest_subject: string;
+          digest_created_at: string;
+          section_title: string;
+          title: string;
+          source_label: string;
+          url: string;
+          via_handle: string;
+          via_url: string;
+          source_type: string;
+          why: string;
+          takeaway: string;
+          tags: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          digest_id: string;
+          user_id: string;
+          digest_subject: string;
+          digest_created_at: string;
+          section_title: string;
+          title: string;
+          source_label: string;
+          url: string;
+          via_handle?: string;
+          via_url?: string;
+          source_type: string;
+          why: string;
+          takeaway: string;
+          tags?: string[];
+          created_at?: string;
+        };
+        Update: {
+          digest_subject?: string;
+          digest_created_at?: string;
+          section_title?: string;
+          title?: string;
+          source_label?: string;
+          url?: string;
+          via_handle?: string;
+          via_url?: string;
+          source_type?: string;
+          why?: string;
+          takeaway?: string;
+          tags?: string[];
+        };
+        Relationships: [];
+      };
       article_feedback: {
         Row: {
           id: string;
@@ -113,7 +166,15 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      topic_filter_tags: {
+        Args: {
+          profile_user_id: string;
+          selected_tags?: string[];
+        };
+        Returns: { tag: string }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

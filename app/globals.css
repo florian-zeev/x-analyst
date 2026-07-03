@@ -841,6 +841,21 @@ textarea {
   line-height: 1.22;
 }
 
+.pagination {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  grid-template-columns: 1fr auto 1fr;
+  margin-top: 10px;
+  padding-top: 24px;
+}
+
+.pagination .button:last-child {
+  justify-self: end;
+}
+
 .brief-followups {
   border-top: 1px solid var(--line);
   display: grid;
