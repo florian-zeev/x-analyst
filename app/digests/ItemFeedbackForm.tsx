@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { saveArticleFeedback } from "@/app/dashboard/actions";
+import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { ReasonSelect } from "@/app/digests/ReasonSelect";
 
 type FeedbackDirection = "more" | "less";
@@ -72,9 +73,11 @@ export function ItemFeedbackForm({
               <input name="note" placeholder="Optional nuance" />
             </label>
             <div className="feedback-actions" aria-label="Save feedback">
-              <button className="text-button" type="submit">
-                Save feedback
-              </button>
+              <SubmitButton
+                className="text-button"
+                idleLabel="Save feedback"
+                pendingLabel="Saving..."
+              />
             </div>
           </div>
         </>
