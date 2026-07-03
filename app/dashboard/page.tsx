@@ -1,9 +1,13 @@
 import { redirect } from "next/navigation";
-import { saveProfile, signOut } from "@/app/dashboard/actions";
+import { generateBrief, saveProfile, signOut } from "@/app/dashboard/actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams
+}: {
+  searchParams: Promise<{ message?: string }>;
+}) {
   const profile = await getCurrentUserProfile();
 
   if (!profile) {
@@ -17,6 +21,7 @@ export default async function DashboardPage() {
     .eq("user_id", profile.userId)
     .order("created_at", { ascending: false })
     .limit(5);
+  const params = await searchParams;
 
   return (
     <main className="shell">
@@ -40,12 +45,13 @@ export default async function DashboardPage() {
               UTC by default.
             </p>
           </div>
-          <form action="/api/digest/run" method="get">
+          <form action={generateBrief}>
             <button className="button secondary" type="submit">
               Run now
             </button>
           </form>
         </div>
+        {params.message ? <p className="notice">{params.message}</p> : null}
 
         <div className="grid" id="profile">
           <form className="panel full form" action={saveProfile}>
@@ -85,9 +91,9 @@ export default async function DashboardPage() {
               <button className="button" type="submit">
                 Save
               </button>
-              <a className="button ghost" href="/api/digest/run">
+              <button className="button ghost" formAction={generateBrief}>
                 Generate brief
-              </a>
+              </button>
             </div>
           </form>
 

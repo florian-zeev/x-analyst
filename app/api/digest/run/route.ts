@@ -6,32 +6,38 @@ import { getCurrentUserProfile, toProfile } from "@/lib/profile";
 export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
-  const auth = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
+  try {
+    const auth = request.headers.get("authorization");
+    const cronSecret = process.env.CRON_SECRET;
 
-  if (cronSecret && auth === `Bearer ${cronSecret}`) {
-    const admin = createAdminClient();
-    const { data, error } = await admin.from("analyst_profiles").select("*");
+    if (cronSecret && auth === `Bearer ${cronSecret}`) {
+      const admin = createAdminClient();
+      const { data, error } = await admin.from("analyst_profiles").select("*");
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      const results = [];
+      for (const row of data ?? []) {
+        results.push(await runDigestForProfile(toProfile(row)));
+      }
+
+      return NextResponse.json({ ok: true, results });
     }
 
-    const results = [];
-    for (const row of data ?? []) {
-      results.push(await runDigestForProfile(toProfile(row)));
+    const profile = await getCurrentUserProfile();
+    if (!profile) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    return NextResponse.json({ ok: true, results });
+    const result = await runDigestForProfile(profile);
+    return NextResponse.json({ ok: true, result });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Brief generation failed.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
-
-  const profile = await getCurrentUserProfile();
-  if (!profile) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const result = await runDigestForProfile(profile);
-  return NextResponse.json({ ok: true, result });
 }
 
 export async function POST(request: NextRequest) {

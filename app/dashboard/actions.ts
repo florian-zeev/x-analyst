@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { runDigestForProfile } from "@/lib/digest";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export async function saveProfile(formData: FormData) {
@@ -46,4 +47,24 @@ export async function signOut() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/");
+}
+
+export async function generateBrief() {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  let digestId: string;
+  try {
+    const result = await runDigestForProfile(profile);
+    digestId = result.id;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Brief generation failed.";
+    redirect(`/dashboard?message=${encodeURIComponent(message)}`);
+  }
+
+  redirect(`/digests/${digestId}`);
 }
