@@ -13,20 +13,7 @@ export type AnalystProfile = {
   digestEmail: string | null;
 };
 
-const defaultInterestProfile = `# Interest profile
-
-I care about:
-- strong new articles, primary sources, and substantive analysis in my topic area
-- concrete developments, launches, research, policy changes, market signals, or field reports
-- thoughtful essays, postmortems, benchmarks, explainers, and opposing views
-- items that change how I should understand the domain or what I should pay attention to next
-
-I care less about:
-- vague hype
-- recycled announcements
-- generic engagement bait
-- shallow commentary without evidence
-`;
+const defaultInterestProfile = "";
 
 export const getCurrentUserProfile = cache(async () => {
   const supabase = await createClient();
