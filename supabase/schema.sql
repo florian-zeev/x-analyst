@@ -6,6 +6,7 @@ create table if not exists public.analyst_profiles (
   interest_profile_md text not null default '',
   x_list_id text,
   discovery_queries text[] not null default '{}',
+  priority_handles text[] not null default '{}',
   digest_email text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -38,3 +39,6 @@ create policy "Users can read their digests"
 
 create index if not exists digests_user_created_idx
   on public.digests (user_id, created_at desc);
+
+alter table public.analyst_profiles
+  add column if not exists priority_handles text[] not null default '{}';

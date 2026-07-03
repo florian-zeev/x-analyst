@@ -8,8 +8,7 @@ owns source configuration, authentication, persistence, and email delivery.
 
 # Briefing Standard
 
-The output should feel like a presidential daily brief: concise, ranked, and
-skeptical. Prioritize:
+The output should feel like a concise, ranked, skeptical daily brief. Prioritize:
 
 - strong new articles and primary-source technical posts
 - product, company, framework, app, and tooling launches

@@ -2,10 +2,11 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
 import { generateBrief } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
+import { DigestsTable } from "@/app/digests/DigestsTable";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
-export default async function DashboardPage({
+export default async function DigestsPage({
   searchParams
 }: {
   searchParams: Promise<{ message?: string; type?: string }>;
@@ -18,23 +19,21 @@ export default async function DashboardPage({
 
   const params = await searchParams;
   const admin = createAdminClient();
-  const { data: latestDigest } = await admin
+  const { data: digests } = await admin
     .from("digests")
     .select("*")
     .eq("user_id", profile.userId)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(50);
 
   return (
-    <AppShell active="dashboard">
+    <AppShell active="digests">
       <div className="topbar">
         <div>
-          <p className="eyebrow">Overview</p>
-          <h1>Daily AI briefing setup</h1>
+          <p className="eyebrow">Digests</p>
+          <h1>Brief archive</h1>
           <p className="muted">
-            Signed in as {profile.email}. Configure sources in Profile, review
-            generated briefs in Digests, or run a new brief now.
+            Browse, open, and delete generated daily briefs.
           </p>
         </div>
         <form action={generateBrief}>
@@ -49,32 +48,10 @@ export default async function DashboardPage({
         <p className={`notice ${noticeType(params.type)}`}>{params.message}</p>
       ) : null}
 
-      <div className="grid">
-        <section className="panel">
-          <h2>Profile</h2>
-          <p className="muted">
-            Edit your X list, discovery queries, email recipient, and interest
-            profile.
-          </p>
-          <a className="button ghost" href="/profile">
-            Edit profile
-          </a>
-        </section>
-        <section className="panel">
-          <h2>Digests</h2>
-          {latestDigest ? (
-            <p className="muted">
-              Latest: {new Date(latestDigest.created_at).toLocaleString()} ·{" "}
-              {latestDigest.item_count} items
-            </p>
-          ) : (
-            <p className="muted">No briefs generated yet.</p>
-          )}
-          <a className="button ghost" href="/digests">
-            View digests
-          </a>
-        </section>
-      </div>
+      <section className="panel">
+        <h2>All briefs</h2>
+        <DigestsTable digests={digests ?? []} />
+      </section>
     </AppShell>
   );
 }

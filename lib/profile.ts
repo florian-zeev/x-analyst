@@ -9,6 +9,7 @@ export type AnalystProfile = {
   interestProfileMd: string;
   xListId: string | null;
   discoveryQueries: string[];
+  priorityHandles: string[];
   digestEmail: string | null;
 };
 
@@ -60,6 +61,7 @@ export const getCurrentUserProfile = cache(async () => {
         email,
         interest_profile_md: defaultInterestProfile,
         discovery_queries: ["AI agents", "AI framework", "new AI product"],
+        priority_handles: [],
         digest_email: email
       })
       .select("*")
@@ -81,6 +83,7 @@ export function toProfile(row: {
   interest_profile_md: string;
   x_list_id: string | null;
   discovery_queries: string[];
+  priority_handles: string[];
   digest_email: string | null;
 }): AnalystProfile {
   return {
@@ -89,6 +92,7 @@ export function toProfile(row: {
     interestProfileMd: row.interest_profile_md,
     xListId: row.x_list_id,
     discoveryQueries: row.discovery_queries,
+    priorityHandles: row.priority_handles ?? [],
     digestEmail: row.digest_email
   };
 }

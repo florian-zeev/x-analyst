@@ -16,6 +16,7 @@ export type Database = {
           interest_profile_md: string;
           x_list_id: string | null;
           discovery_queries: string[];
+          priority_handles: string[];
           digest_email: string | null;
           created_at: string;
           updated_at: string;
@@ -26,6 +27,7 @@ export type Database = {
           interest_profile_md?: string;
           x_list_id?: string | null;
           discovery_queries?: string[];
+          priority_handles?: string[];
           digest_email?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -35,6 +37,7 @@ export type Database = {
           interest_profile_md?: string;
           x_list_id?: string | null;
           discovery_queries?: string[];
+          priority_handles?: string[];
           digest_email?: string | null;
           updated_at?: string;
         };

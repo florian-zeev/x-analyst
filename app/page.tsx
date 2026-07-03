@@ -18,8 +18,8 @@ export default async function Home() {
       <aside className="sidebar">
         <h1 className="brand">X Analyst</h1>
         <p className="muted">
-          A private presidential daily brief for AI Twitter, linked articles,
-          tools, products, and companies.
+          A private daily brief for AI Twitter, linked articles, tools,
+          products, and companies.
         </p>
       </aside>
       <section className="main">
@@ -54,7 +54,7 @@ export default async function Home() {
           <section className="panel">
             <h2>Judgment</h2>
             <p className="muted">
-              Scores items against your Markdown interest profile with the
+              Ranks items against your Markdown interest profile with the
               Vercel AI SDK, then composes a concise daily brief.
             </p>
           </section>

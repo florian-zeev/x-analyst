@@ -1,6 +1,7 @@
 export type XPost = {
   id: string;
   text: string;
+  longText?: string;
   authorUsername?: string;
   authorName?: string;
   createdAt?: string;
@@ -13,6 +14,17 @@ type XTweet = {
   text: string;
   author_id?: string;
   created_at?: string;
+  note_tweet?: {
+    text?: string;
+    entities?: {
+      urls?: Array<{
+        expanded_url?: string;
+        unwound_url?: string;
+        display_url?: string;
+        url?: string;
+      }>;
+    };
+  };
   entities?: {
     urls?: Array<{
       expanded_url?: string;
@@ -55,7 +67,7 @@ export async function fetchXPosts(options: {
   }
 
   for (const query of options.discoveryQueries.slice(0, 5)) {
-    const normalizedQuery = `${query} has:links -is:retweet lang:en`;
+    const normalizedQuery = `${query} -is:retweet lang:en`;
     posts.push(
       ...(await fetchTimeline(
         "https://api.x.com/2/tweets/search/recent",
@@ -74,7 +86,7 @@ export async function fetchXPosts(options: {
     byId.set(post.id, post);
   }
 
-  return [...byId.values()].filter((post) => post.urls.length > 0);
+  return [...byId.values()];
 }
 
 async function fetchTimeline(
@@ -84,7 +96,10 @@ async function fetchTimeline(
   source: string
 ) {
   const url = new URL(baseUrl);
-  url.searchParams.set("tweet.fields", "created_at,entities,author_id");
+  url.searchParams.set(
+    "tweet.fields",
+    "created_at,entities,author_id,note_tweet"
+  );
   url.searchParams.set("expansions", "author_id");
   url.searchParams.set("user.fields", "name,username");
 
@@ -118,16 +133,21 @@ async function fetchTimeline(
 
   return (payload.data ?? []).map((tweet) => {
     const author = tweet.author_id ? users.get(tweet.author_id) : undefined;
+    const urls = [
+      ...(tweet.entities?.urls ?? []),
+      ...(tweet.note_tweet?.entities?.urls ?? [])
+    ]
+      .map((item) => item.unwound_url ?? item.expanded_url ?? item.url)
+      .filter((url): url is string => Boolean(url));
+
     return {
       id: tweet.id,
       text: tweet.text,
+      longText: tweet.note_tweet?.text,
       authorUsername: author?.username,
       authorName: author?.name,
       createdAt: tweet.created_at,
-      urls:
-        tweet.entities?.urls
-          ?.map((item) => item.unwound_url ?? item.expanded_url ?? item.url)
-          .filter((url): url is string => Boolean(url)) ?? [],
+      urls,
       source
     };
   });

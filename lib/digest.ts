@@ -1,4 +1,10 @@
-import { generateText } from "ai";
+import { generateObject } from "ai";
+import {
+  type DailyBrief,
+  dailyBriefSchema,
+  encodeStructuredBrief,
+  structuredBriefToMarkdown
+} from "@/lib/brief";
 import { fetchArticle, type ArticleSnapshot } from "@/lib/article";
 import { sendDigestEmail } from "@/lib/email";
 import { type AnalystProfile } from "@/lib/profile";
@@ -8,6 +14,7 @@ import { fetchXPosts, type XPost } from "@/lib/x";
 export type DigestItem = {
   post: XPost;
   article: ArticleSnapshot;
+  kind: "x" | "link";
 };
 
 export async function runDigestForProfile(profile: AnalystProfile) {
@@ -17,7 +24,8 @@ export async function runDigestForProfile(profile: AnalystProfile) {
   });
 
   const items = await collectArticles(posts);
-  const body = await writeBrief(profile, items);
+  const brief = await writeBrief(profile, items);
+  const body = encodeStructuredBrief(brief);
   const subject = `X Analyst Brief - ${new Date().toISOString().slice(0, 10)}`;
 
   const admin = createAdminClient();
@@ -41,7 +49,7 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     const result = await sendDigestEmail({
       to: profile.digestEmail,
       subject,
-      markdown: body
+      markdown: structuredBriefToMarkdown(brief)
     });
 
     if (result.sent) {
@@ -67,13 +75,35 @@ async function collectArticles(posts: XPost[]) {
   const candidates: DigestItem[] = [];
 
   for (const post of posts.slice(0, 80)) {
+    let addedLinkedItem = false;
+
     for (const url of post.urls.slice(0, 2)) {
       if (seen.has(url) || isLowValueUrl(url)) {
         continue;
       }
       seen.add(url);
       const article = await fetchArticle(url);
-      candidates.push({ post, article });
+      candidates.push({ post, article, kind: "link" });
+      addedLinkedItem = true;
+    }
+
+    if (!addedLinkedItem && isSubstantialXPost(post)) {
+      const url = xPostUrl(post);
+      if (!seen.has(url)) {
+        seen.add(url);
+        candidates.push({
+          post,
+          kind: "x",
+          article: {
+            url,
+            finalUrl: url,
+            title: `X post by ${formatAuthor(post)}`,
+            description: post.longText ?? post.text,
+            text: post.longText ?? post.text,
+            fetched: true
+          }
+        });
+      }
     }
   }
 
@@ -82,23 +112,35 @@ async function collectArticles(posts: XPost[]) {
 
 async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
   if (items.length === 0) {
-    return [
-      "# Presidential Daily Brief",
-      "",
-      "No linked articles or product announcements were found in the configured sources today.",
-      "",
-      "Check the X list ID, discovery queries, and X API access if this looks unexpectedly quiet."
-    ].join("\n");
+    return {
+      title: "Daily Brief" as const,
+      bluf:
+        "No strong linked articles, X-native long posts, or product announcements were found in the configured sources today.",
+      generatedFor: profile.email,
+      sections: [
+        {
+          id: "quiet-feed",
+          title: "Quiet Feed",
+          summary:
+            "Check the X list ID, discovery queries, and X API access if this looks unexpectedly quiet.",
+          items: []
+        }
+      ],
+      followups: []
+    };
   }
 
   const sourcePack = items
     .map((item, index) =>
       [
         `ITEM ${index + 1}`,
-        `Tweet: ${item.post.text}`,
+        `Kind: ${item.kind === "x" ? "X-native post/article" : "External link"}`,
+        `X text: ${item.post.longText ?? item.post.text}`,
         `Author: ${formatAuthor(item.post)}`,
+        `Priority author: ${isPriorityAuthor(item.post, profile.priorityHandles) ? "yes" : "no"}`,
         `Source: ${item.post.source}`,
         `URL: ${item.article.finalUrl}`,
+        `Host: ${hostLabel(item.article.finalUrl)}`,
         `Title: ${item.article.title}`,
         `Description: ${item.article.description}`,
         `Article excerpt: ${item.article.text.slice(0, 1800)}`
@@ -106,35 +148,119 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     )
     .join("\n\n---\n\n");
 
-  const { text } = await generateText({
+  const { object } = await generateObject({
     model: process.env.AI_MODEL ?? "openai/gpt-5.4-mini",
+    schema: dailyBriefSchema,
     system: [
-      "You are a senior AI industry analyst writing a presidential daily brief.",
+      "You are a senior AI industry analyst writing a daily brief.",
       "Rank ruthlessly against the reader's stated interests.",
       "Prefer primary sources, new technical depth, concrete launches, and market-moving company/product signals.",
-      "Do not include filler. Include source links for every item you mention."
+      "Do not include filler. Include source links for every item you mention.",
+      "Return compact structured data for a UI. Never put raw long URLs in prose; put the full target only in the url field.",
+      "Use sourceLabel for the visible label, such as the host, article title, product name, or X handle."
     ].join(" "),
     prompt: [
       "Reader interest profile:",
       profile.interestProfileMd,
       "",
-      "Candidate items from X and linked articles:",
+      "Candidate items from X, including X-native long posts/articles and linked articles:",
       sourcePack,
       "",
-      "Write a concise Markdown brief with these sections:",
-      "# Presidential Daily Brief",
-      "## BLUF",
-      "## Must Read",
-      "## Product And Framework Watch",
-      "## Market Signals",
-      "## Interesting But Lower Priority",
-      "## Suggested Follows Or Sources",
+      "Priority X handles:",
+      profile.priorityHandles.length
+        ? profile.priorityHandles.map((handle) => `@${handle}`).join(", ")
+        : "None configured",
       "",
-      "For each item, include why it matters, a relevance score from 1-10, and the link."
+      "If an item comes from a priority handle, treat that as a signal to inspect it more carefully and consider elevating it when the substance matches the reader profile. Do not include it solely because of the handle.",
+      "",
+      "Create a concise structured brief with title exactly: Daily Brief.",
+      "",
+      "Use these section titles when relevant:",
+      "Must Read",
+      "Priority Handles",
+      "Product And Framework Watch",
+      "Market Signals",
+      "X-Native Reads",
+      "Interesting But Lower Priority",
+      "",
+      "Use Priority Handles for substantive items from configured priority X handles. That section must only contain items whose Priority author field is yes.",
+      "Each item must have title, sourceLabel, url, viaHandle, viaUrl, sourceType, why, takeaway, and tags.",
+      "Set viaHandle and viaUrl to empty strings; the application will attach exact X provenance after generation.",
+      "Do not assign numeric ratings. They create false precision. Rank through section placement and concise prose instead.",
+      "When citing X-native items, url must link to the X post and why must describe why the post itself is worth reading."
     ].join("\n")
   });
 
-  return text;
+  return attachTweetProvenance(object, items);
+}
+
+function attachTweetProvenance(
+  brief: DailyBrief,
+  items: DigestItem[]
+) {
+  return {
+    ...brief,
+    sections: brief.sections.map((section) => ({
+      ...section,
+      items: section.items.map((briefItem) => {
+        const sourceItem = findSourceItem(briefItem.url, items);
+        return {
+          ...briefItem,
+          viaHandle: sourceItem?.post.authorUsername
+            ? `@${sourceItem.post.authorUsername}`
+            : "",
+          viaUrl: sourceItem ? xPostUrl(sourceItem.post) : ""
+        };
+      })
+    }))
+  };
+}
+
+function findSourceItem(url: string, items: DigestItem[]) {
+  return items.find(
+    (item) =>
+      normalizeUrl(item.article.finalUrl) === normalizeUrl(url) ||
+      normalizeUrl(item.article.url) === normalizeUrl(url)
+  );
+}
+
+function normalizeUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return url;
+  }
+}
+
+function isSubstantialXPost(post: XPost) {
+  const text = post.longText ?? post.text;
+  return text.length >= 240;
+}
+
+function xPostUrl(post: XPost) {
+  if (post.authorUsername) {
+    return `https://x.com/${post.authorUsername}/status/${post.id}`;
+  }
+
+  return `https://x.com/i/web/status/${post.id}`;
+}
+
+function hostLabel(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
+function isPriorityAuthor(post: XPost, handles: string[]) {
+  if (!post.authorUsername) {
+    return false;
+  }
+
+  return handles.includes(post.authorUsername.toLowerCase());
 }
 
 function formatAuthor(post: XPost) {
