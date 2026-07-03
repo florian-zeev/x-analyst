@@ -21,15 +21,21 @@ export default async function Home() {
           A private daily brief for curated X sources, linked articles, and
           the topics you care about.
         </p>
+        <p className="sidebar-credit">
+          (c) 2026{" "}
+          <a href="https://www.fwolf.io" rel="noreferrer" target="_blank">
+            Florian Wolf
+          </a>
+        </p>
       </aside>
-      <section className="main">
-        <div className="topbar">
+      <section className="main landing-main">
+        <div className="landing-hero">
           <div>
             <p className="eyebrow">Briefing room</p>
-            <h1>Stay current without living in the timeline.</h1>
-            <p className="muted">
-              Connect Supabase auth, add your X list and interest profile, then
-              run the daily digest on Vercel.
+            <h1>X intelligence, edited down to a daily brief.</h1>
+            <p>
+              X Analyst reads your chosen sources, follows linked articles, and
+              ranks what matters against your own written interest profile.
             </p>
           </div>
           <Link className="button landing-sign-in" href="/login">
@@ -47,15 +53,21 @@ export default async function Home() {
           <section className="panel">
             <h2>Sources</h2>
             <p className="muted">
-              Pulls recent posts from an X list and optional discovery searches,
-              prioritizing links, long posts, and substantive developments.
+              Curated X lists, priority handles, discovery searches, native
+              posts, and links worth opening.
             </p>
           </section>
           <section className="panel">
-            <h2>Judgment</h2>
+            <h2>Profile</h2>
             <p className="muted">
-              Ranks items against your Markdown interest profile with the
-              Vercel AI SDK, then composes a concise daily brief.
+              A Markdown brief of what you care about, plus feedback that tunes
+              future selection.
+            </p>
+          </section>
+          <section className="panel">
+            <h2>Delivery</h2>
+            <p className="muted">
+              Stored digests, scheduled runs, and email delivery via Resend.
             </p>
           </section>
         </div>

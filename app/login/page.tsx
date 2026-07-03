@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { signIn } from "@/app/login/actions";
+import { isAllowedEmail } from "@/lib/authz";
 import { hasSupabasePublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -29,7 +30,12 @@ export default async function LoginPage({
   const { data } = await supabase.auth.getClaims();
 
   if (data?.claims) {
-    redirect("/dashboard");
+    const email = String(data.claims.email ?? "").toLowerCase();
+    if (isAllowedEmail(email)) {
+      redirect("/dashboard");
+    }
+
+    redirect("/auth/sign-out");
   }
 
   const params = await searchParams;

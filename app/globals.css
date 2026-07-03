@@ -53,6 +53,20 @@ textarea {
   height: 100vh;
 }
 
+.sidebar-credit {
+  bottom: 30px;
+  color: var(--muted);
+  font-size: 12px;
+  margin: 0;
+  position: absolute;
+}
+
+.sidebar-credit a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
 .brand {
   border-bottom: 1px solid var(--ink);
   font-size: 15px;
@@ -115,6 +129,38 @@ textarea {
 
 .landing-sign-in {
   flex: 0 0 auto;
+}
+
+.landing-main {
+  align-content: start;
+  display: grid;
+  gap: 58px;
+}
+
+.landing-hero {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line-strong);
+  display: grid;
+  gap: 36px;
+  grid-template-columns: minmax(0, 760px) auto;
+  max-width: 1120px;
+  padding-bottom: 42px;
+}
+
+.landing-hero h1 {
+  font-size: 52px;
+  letter-spacing: 0;
+  line-height: 1.02;
+  margin-bottom: 22px;
+  max-width: 820px;
+}
+
+.landing-hero p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 680px;
 }
 
 .eyebrow {
@@ -906,14 +952,29 @@ textarea {
     border-bottom: 1px solid var(--line);
   }
 
+  .sidebar-credit {
+    margin-top: 32px;
+    position: static;
+  }
+
   .main {
     padding: 28px 22px;
   }
 
   .topbar,
-  .grid {
+  .grid,
+  .landing-hero {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .landing-hero h1 {
+    font-size: 36px;
+    line-height: 1.08;
+  }
+
+  .landing-hero p:not(.eyebrow) {
+    font-size: 17px;
   }
 
   .brief-section,
