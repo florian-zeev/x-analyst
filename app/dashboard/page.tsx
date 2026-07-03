@@ -31,7 +31,7 @@ export default async function DashboardPage({
       <div className="topbar">
         <div>
           <p className="eyebrow">Overview</p>
-          <h1>Daily AI briefing setup</h1>
+          <h1>Daily briefing setup</h1>
           <p className="muted">
             Signed in as {profile.email}. Configure sources in Profile, review
             generated briefs in Digests, or run a new brief now.

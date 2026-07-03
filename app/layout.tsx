@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "X Analyst",
-  description: "A daily AI brief from curated X sources and linked articles."
+  description: "A daily brief from curated X sources and linked articles."
 };
 
 export default function RootLayout({

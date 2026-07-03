@@ -6,7 +6,19 @@ export const briefItemSchema = z.object({
   url: z.string(),
   viaHandle: z.string(),
   viaUrl: z.string(),
-  sourceType: z.enum(["external", "x-native", "company", "framework", "research"]),
+  sourceType: z.enum([
+    "external",
+    "x-native",
+    "company",
+    "framework",
+    "research",
+    "organization",
+    "project",
+    "publication",
+    "policy",
+    "event",
+    "analysis"
+  ]),
   why: z.string(),
   takeaway: z.string(),
   tags: z.array(z.string()).max(4)

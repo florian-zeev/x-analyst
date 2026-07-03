@@ -1,7 +1,7 @@
 # X Analyst
 
 A Vercel-ready Next.js app that turns a curated X list plus discovery searches
-into a daily AI industry brief. It uses Supabase Auth for private access,
+into a daily brief for any topic described in your interest profile. It uses Supabase Auth for private access,
 Supabase Postgres for settings and digests, Vercel AI SDK for brief generation,
 and Vercel Eve for the scheduled agent wrapper.
 
@@ -23,9 +23,9 @@ pnpm dev
 
 ## Vercel
 
-The app includes `vercel.json` with a daily cron hitting `/api/digest/run`.
 Set the same environment variables in Vercel. If `CRON_SECRET` is present,
-Vercel Cron can call the endpoint with `Authorization: Bearer $CRON_SECRET`.
+scheduled runners can call `/api/digest/run` with
+`Authorization: Bearer $CRON_SECRET`.
 
 ## Eve
 
@@ -37,4 +37,4 @@ pnpm eve:deploy
 ```
 
 Eve is kept as the durable scheduled-agent layer, while the Next.js app remains
-the product UI and persistence layer.
+the UI and persistence layer.

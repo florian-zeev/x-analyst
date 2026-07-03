@@ -11,13 +11,14 @@ import {
 
 const reasons = [
   { label: "No reason", value: "none", submitValue: "" },
-  { label: "More technical depth", value: "more technical depth" },
-  { label: "More market signal", value: "more market signal" },
-  { label: "More tools/frameworks", value: "more tools/frameworks" },
+  { label: "More depth", value: "more depth" },
+  { label: "More concrete signal", value: "more concrete signal" },
+  { label: "More primary sources", value: "more primary sources" },
+  { label: "More practical implications", value: "more practical implications" },
   { label: "Too hypey", value: "too hypey" },
   { label: "Too shallow", value: "too shallow" },
   { label: "Too far from my interests", value: "too far from my interests" },
-  { label: "Too product-marketing", value: "too product-marketing" }
+  { label: "Too promotional", value: "too promotional" }
 ];
 
 export function ReasonSelect() {

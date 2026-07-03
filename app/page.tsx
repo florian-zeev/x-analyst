@@ -18,8 +18,8 @@ export default async function Home() {
       <aside className="sidebar">
         <h1 className="brand">X Analyst</h1>
         <p className="muted">
-          A private daily brief for AI Twitter, linked articles, tools,
-          products, and companies.
+          A private daily brief for curated X sources, linked articles, and
+          the topics you care about.
         </p>
       </aside>
       <section className="main">
@@ -48,7 +48,7 @@ export default async function Home() {
             <h2>Sources</h2>
             <p className="muted">
               Pulls recent posts from an X list and optional discovery searches,
-              prioritizing links to articles and product announcements.
+              prioritizing links, long posts, and substantive developments.
             </p>
           </section>
           <section className="panel">

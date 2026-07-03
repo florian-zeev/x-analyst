@@ -127,7 +127,7 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     return {
       title: "Daily Brief" as const,
       bluf:
-        "No strong linked articles, X-native long posts, or product announcements were found in the configured sources today.",
+        "No strong linked articles, X-native long posts, or profile-relevant developments were found in the configured sources today.",
       generatedFor: profile.email,
       sections: [
         {
@@ -164,12 +164,12 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     model: process.env.AI_MODEL ?? "openai/gpt-5.4-mini",
     schema: dailyBriefSchema,
     system: [
-      "You are a senior AI industry analyst writing a daily brief.",
+      "You are a senior analyst writing a daily brief for the domain described by the reader's interest profile.",
       "Rank ruthlessly against the reader's stated interests.",
-      "Prefer primary sources, new technical depth, concrete launches, and market-moving company/product signals.",
+      "Prefer primary sources, new substantive depth, concrete developments, and signals that materially change understanding of the domain.",
       "Do not include filler. Include source links for every item you mention.",
       "Return compact structured data for a UI. Never put raw long URLs in prose; put the full target only in the url field.",
-      "Use sourceLabel for the visible label, such as the host, article title, product name, or X handle."
+      "Use sourceLabel for the visible label, such as the host, article title, organization, publication, project, topic, or X handle."
     ].join(" "),
     prompt: [
       "Reader interest profile:",
@@ -188,22 +188,23 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
         : "None configured",
       "",
       "If an item comes from a priority handle, treat that as a signal to inspect it more carefully and consider elevating it when the substance matches the reader profile. Do not include it solely because of the handle.",
-      "Diversity is part of quality. Avoid multiple items that say the same thing from the same handle, company, product, or topic cluster.",
+      "Diversity is part of quality. Avoid multiple items that say the same thing from the same handle, organization, publication, project, person, or topic cluster.",
       "If a priority handle posts a thread or several related updates about the same announcement, choose the single most canonical or information-rich post and summarize the cluster once.",
-      "Do not include more than two items from the same priority handle in the Priority Handles section unless they are clearly unrelated stories.",
-      "Prefer a varied brief across authors, companies, products, research, infrastructure, security, and market signals over exhaustive coverage of one source.",
+      "Do not include more than two items from the same priority handle in the priority-source section unless they are clearly unrelated stories.",
+      "Prefer a varied brief across authors, sources, organizations, developments, debates, research, evidence, and signals over exhaustive coverage of one source.",
       "",
       "Create a concise structured brief with title exactly: Daily Brief.",
       "",
-      "Use these section titles when relevant:",
+      "Use section titles that fit the reader's domain. These are acceptable defaults when relevant:",
       "Must Read",
-      "Priority Handles",
-      "Product And Framework Watch",
-      "Market Signals",
+      "Priority Sources",
+      "New Developments",
+      "Deep Reads",
+      "Signals",
       "X-Native Reads",
       "Interesting But Lower Priority",
       "",
-      "Use Priority Handles for substantive items from configured priority X handles. That section must only contain items whose Priority author field is yes.",
+      "Use Priority Sources for substantive items from configured priority X handles. That section must only contain items whose Priority author field is yes.",
       "Each item must have title, sourceLabel, url, viaHandle, viaUrl, sourceType, why, takeaway, and tags.",
       "Set viaHandle and viaUrl to empty strings; the application will attach exact X provenance after generation.",
       "Do not assign numeric ratings. They create false precision. Rank through section placement and concise prose instead.",
@@ -255,7 +256,9 @@ function diversifyBrief(brief: DailyBrief) {
           const sectionCount = sectionByHandle.get(handle) ?? 0;
           const totalCount = totalByHandle.get(handle) ?? 0;
           const isPrioritySection =
-            section.title.toLowerCase() === "priority handles";
+            ["priority handles", "priority sources"].includes(
+              section.title.toLowerCase()
+            );
           const sectionLimit = isPrioritySection ? 2 : 3;
 
           if (sectionCount >= sectionLimit || totalCount >= 3) {

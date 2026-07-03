@@ -13,18 +13,19 @@ export type AnalystProfile = {
   digestEmail: string | null;
 };
 
-const defaultInterestProfile = `# AI interest profile
+const defaultInterestProfile = `# Interest profile
 
 I care about:
-- substantial new AI research with product or engineering implications
-- strong technical essays, postmortems, and benchmark analysis
-- new developer tools, frameworks, AI products, agents, infrastructure, and evals
-- company launches, funding, pricing, and strategy shifts when they change the market
+- strong new articles, primary sources, and substantive analysis in my topic area
+- concrete developments, launches, research, policy changes, market signals, or field reports
+- thoughtful essays, postmortems, benchmarks, explainers, and opposing views
+- items that change how I should understand the domain or what I should pay attention to next
 
 I care less about:
 - vague hype
 - recycled announcements
 - generic engagement bait
+- shallow commentary without evidence
 `;
 
 export const getCurrentUserProfile = cache(async () => {
@@ -60,7 +61,7 @@ export const getCurrentUserProfile = cache(async () => {
         user_id: userId,
         email,
         interest_profile_md: defaultInterestProfile,
-        discovery_queries: ["AI agents", "AI framework", "new AI product"],
+        discovery_queries: [],
         priority_handles: [],
         digest_email: email
       })
