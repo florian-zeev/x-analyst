@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { signIn } from "@/app/login/actions";
 import { isAllowedEmail } from "@/lib/authz";
 import { hasSupabasePublicEnv } from "@/lib/env";
@@ -58,9 +59,11 @@ export default async function LoginPage({
             Email
             <input name="email" type="email" required autoComplete="email" />
           </label>
-          <button className="button" type="submit">
-            Send magic link
-          </button>
+          <SubmitButton
+            className="button"
+            idleLabel="Send magic link"
+            pendingLabel="Sending..."
+          />
           {params.message ? <p className="muted">{params.message}</p> : null}
         </form>
       </section>
