@@ -32,7 +32,7 @@ export default async function Home() {
               run the daily digest on Vercel.
             </p>
           </div>
-          <Link className="button" href="/login">
+          <Link className="button landing-sign-in" href="/login">
             Sign in
           </Link>
         </div>

@@ -69,6 +69,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      article_feedback: {
+        Row: {
+          id: string;
+          user_id: string;
+          digest_id: string | null;
+          item_url: string;
+          item_title: string;
+          source_label: string;
+          via_handle: string;
+          tags: string[];
+          direction: "more" | "less";
+          reason: string;
+          note: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          digest_id?: string | null;
+          item_url: string;
+          item_title: string;
+          source_label: string;
+          via_handle?: string;
+          tags?: string[];
+          direction: "more" | "less";
+          reason?: string;
+          note?: string;
+          created_at?: string;
+        };
+        Update: {
+          digest_id?: string | null;
+          item_url?: string;
+          item_title?: string;
+          source_label?: string;
+          via_handle?: string;
+          tags?: string[];
+          direction?: "more" | "less";
+          reason?: string;
+          note?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

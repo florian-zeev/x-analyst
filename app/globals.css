@@ -33,6 +33,7 @@ a {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -112,6 +113,10 @@ textarea {
   padding-bottom: 30px;
 }
 
+.landing-sign-in {
+  flex: 0 0 auto;
+}
+
 .eyebrow {
   color: var(--muted);
   font-size: 12px;
@@ -171,7 +176,14 @@ label {
   text-transform: uppercase;
 }
 
+.field-help {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: none;
+}
+
 input,
+select,
 textarea {
   width: 100%;
   border: 1px solid var(--line);
@@ -192,6 +204,14 @@ textarea {
   gap: 22px;
 }
 
+.auth-form {
+  max-width: 380px;
+}
+
+.auth-form .button {
+  justify-self: start;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -210,6 +230,11 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .button[disabled] {
@@ -222,9 +247,13 @@ textarea {
 }
 
 .button.ghost {
-  border: 1px solid var(--line);
-  background: transparent;
+  border: 0;
+  background: #f1f1f1;
   color: var(--ink);
+}
+
+.button.ghost:hover {
+  background: #e7e7e7;
 }
 
 .button.danger {
@@ -240,12 +269,15 @@ textarea {
   border: 0;
   color: var(--ink);
   cursor: pointer;
-  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
   font-weight: 700;
+  letter-spacing: 0;
   padding: 0;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
+  text-transform: uppercase;
 }
 
 .text-button.danger {
@@ -381,12 +413,15 @@ textarea {
   border-radius: 2px;
   cursor: pointer;
   display: inline-flex;
-  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
   font-weight: 700;
   height: 44px;
   justify-content: center;
+  letter-spacing: 0;
   min-width: 112px;
   padding: 0 18px;
+  text-transform: uppercase;
 }
 
 .shadcn-button[disabled] {
@@ -409,6 +444,69 @@ textarea {
 .shadcn-button-danger:hover {
   background: var(--danger-hover);
   border-color: var(--danger-hover);
+}
+
+.reason-select {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: space-between;
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: left;
+  text-transform: none;
+  width: 100%;
+}
+
+.reason-select::after {
+  color: var(--muted);
+  content: "v";
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 10px;
+  margin-left: 12px;
+}
+
+.reason-select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.shadcn-select-content {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  box-shadow: 0 18px 50px rgb(0 0 0 / 12%);
+  min-width: var(--radix-select-trigger-width);
+  overflow: hidden;
+  z-index: 70;
+}
+
+.shadcn-select-viewport {
+  padding: 4px;
+}
+
+.shadcn-select-item {
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.3;
+  outline: 0;
+  padding: 8px 10px;
+  text-transform: none;
+}
+
+.shadcn-select-item[data-highlighted] {
+  background: var(--surface);
+}
+
+.shadcn-select-item[data-state="checked"] {
+  font-weight: 700;
 }
 
 .brief {
@@ -467,12 +565,12 @@ textarea {
 
 .brief-items {
   display: grid;
-  gap: 18px;
+  gap: 34px;
 }
 
 .brief-item {
   border-top: 1px solid var(--line);
-  padding-top: 20px;
+  padding-top: 32px;
 }
 
 .brief-item:first-child {
@@ -482,7 +580,7 @@ textarea {
 
 .item-body {
   display: grid;
-  gap: 12px;
+  gap: 16px;
 }
 
 .item-kicker {
@@ -508,12 +606,12 @@ textarea {
 .item-body h3 {
   font-size: 22px;
   line-height: 1.22;
-  margin: 0;
+  margin: 2px 0 0;
 }
 
 .item-body dl {
   display: grid;
-  gap: 10px;
+  gap: 14px;
   margin: 0;
 }
 
@@ -537,23 +635,110 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .item-tags a,
 .topic-filter-list a {
-  border: 1px solid var(--line);
+  background: #f1f1f1;
+  border: 0;
+  border-radius: 2px;
   color: var(--muted);
-  font-size: 12px;
-  padding: 3px 7px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  padding: 5px 8px;
   text-decoration: none;
+  text-transform: uppercase;
 }
 
 .item-tags a:hover,
-.topic-filter-list a:hover,
+.topic-filter-list a:hover {
+  background: #e7e7e7;
+}
+
 .topic-filter-list a[aria-current="true"] {
-  border-color: var(--ink);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+.item-feedback {
+  display: grid;
+  gap: 9px;
+  margin-top: 6px;
+}
+
+.item-feedback.is-expanded {
+  background: var(--surface);
+  border-left: 2px solid var(--line);
+  padding: 10px 12px;
+}
+
+.feedback-compact,
+.feedback-expanded-head {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.feedback-compact {
+  color: var(--muted);
+  min-height: 24px;
+}
+
+.feedback-compact span {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.feedback-title {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.feedback-cancel {
+  color: var(--muted);
+}
+
+.feedback-controls {
+  align-items: end;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(130px, 170px) minmax(160px, 280px) auto;
+}
+
+.item-feedback label {
+  color: var(--muted);
+  font-size: 12px;
+  text-transform: none;
+}
+
+.item-feedback input {
+  background: #ffffff;
+  min-height: 34px;
+  padding: 6px 8px;
+}
+
+.feedback-actions {
+  align-items: end;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.learning-list {
+  margin-top: 32px;
 }
 
 .topics-layout {
@@ -733,8 +918,13 @@ textarea {
 
   .brief-section,
   .item-body dl div,
-  .topics-layout {
+  .topics-layout,
+  .feedback-controls {
     grid-template-columns: 1fr;
+  }
+
+  .feedback-actions {
+    justify-content: flex-start;
   }
 
   .brief-section {

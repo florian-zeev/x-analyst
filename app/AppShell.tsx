@@ -6,7 +6,7 @@ export function AppShell({
   active,
   children
 }: {
-  active: "dashboard" | "profile" | "digests" | "topics";
+  active: "dashboard" | "profile" | "digests" | "topics" | "learning";
   children: ReactNode;
 }) {
   return (
@@ -25,6 +25,9 @@ export function AppShell({
           </Link>
           <Link aria-current={active === "topics" ? "page" : undefined} href="/topics">
             Topics
+          </Link>
+          <Link aria-current={active === "learning" ? "page" : undefined} href="/learning">
+            Learning
           </Link>
           <form action={signOut}>
             <button type="submit">Sign out</button>

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
+import { ItemFeedbackForm } from "@/app/digests/ItemFeedbackForm";
 import type { DailyBrief } from "@/lib/brief";
 import { parseStructuredBrief } from "@/lib/brief";
 import { renderMarkdown } from "@/lib/markdown";
@@ -7,9 +8,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function DigestPage({
-  params
+  params,
+  searchParams
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ message?: string; type?: string }>;
 }) {
   const profile = await getCurrentUserProfile();
 
@@ -18,6 +21,7 @@ export default async function DigestPage({
   }
 
   const { id } = await params;
+  const pageParams = await searchParams;
   const admin = createAdminClient();
   const { data: digest } = await admin
     .from("digests")
@@ -40,8 +44,13 @@ export default async function DigestPage({
             <h1>{structured?.brief.title ?? digest.subject}</h1>
           </div>
         </div>
+        {pageParams.message ? (
+          <p className={`notice ${noticeType(pageParams.type)}`}>
+            {pageParams.message}
+          </p>
+        ) : null}
         {structured ? (
-          <StructuredBrief brief={structured.brief} />
+          <StructuredBrief brief={structured.brief} digestId={digest.id} />
         ) : (
           <article className="brief markdown">
             {renderMarkdown(normalizeLegacyBrief(digest.body_md))}
@@ -51,7 +60,13 @@ export default async function DigestPage({
   );
 }
 
-function StructuredBrief({ brief }: { brief: DailyBrief }) {
+function StructuredBrief({
+  brief,
+  digestId
+}: {
+  brief: DailyBrief;
+  digestId: string;
+}) {
   return (
     <article className="brief brief-doc">
       <section className="brief-bluf">
@@ -69,8 +84,8 @@ function StructuredBrief({ brief }: { brief: DailyBrief }) {
 
             {section.items.length ? (
               <div className="brief-items">
-                {section.items.map((item) => (
-                  <article className="brief-item" key={`${section.id}-${item.url}`}>
+                {section.items.map((item, itemIndex) => (
+                  <article className="brief-item" key={`${section.id}-${item.url}-${itemIndex}`}>
                     <div className="item-body">
                       <div className="item-kicker">
                         <span>{sourceTypeLabel(item.sourceType)}</span>
@@ -106,6 +121,7 @@ function StructuredBrief({ brief }: { brief: DailyBrief }) {
                           ))}
                         </div>
                       ) : null}
+                      <ItemFeedbackForm digestId={digestId} item={item} />
                     </div>
                   </article>
                 ))}
@@ -133,6 +149,10 @@ function StructuredBrief({ brief }: { brief: DailyBrief }) {
 
 function normalizeLegacyBrief(markdown: string) {
   return markdown.replace(/^#\s+Presidential Daily Brief\b/m, "# Daily Brief");
+}
+
+function noticeType(type: string | undefined) {
+  return type === "success" || type === "warning" ? type : "error";
 }
 
 function sourceTypeLabel(

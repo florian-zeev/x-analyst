@@ -2,6 +2,7 @@ export async function sendDigestEmail(options: {
   to: string;
   subject: string;
   markdown: string;
+  html: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.DIGEST_FROM_EMAIL;
@@ -20,12 +21,16 @@ export async function sendDigestEmail(options: {
       from,
       to: options.to,
       subject: options.subject,
-      text: options.markdown
+      text: options.markdown,
+      html: options.html
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Resend request failed: ${response.status}`);
+    const body = await response.text();
+    throw new Error(
+      `Resend request failed: ${response.status}${body ? ` ${body}` : ""}`
+    );
   }
 
   return { sent: true };

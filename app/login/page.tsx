@@ -47,7 +47,7 @@ export default async function LoginPage({
             <h1>Sign in</h1>
           </div>
         </div>
-        <form className="panel form" action={signIn}>
+        <form className="panel form auth-form" action={signIn}>
           <label>
             Email
             <input name="email" type="email" required autoComplete="email" />

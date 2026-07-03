@@ -3,10 +3,12 @@ import {
   type DailyBrief,
   dailyBriefSchema,
   encodeStructuredBrief,
+  structuredBriefToHtml,
   structuredBriefToMarkdown
 } from "@/lib/brief";
 import { fetchArticle, type ArticleSnapshot } from "@/lib/article";
 import { sendDigestEmail } from "@/lib/email";
+import { getLearningContext } from "@/lib/learning";
 import { type AnalystProfile } from "@/lib/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchXPosts, type XPost } from "@/lib/x";
@@ -44,20 +46,27 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     throw error;
   }
 
+  const deliveryEmail = profile.digestEmail ?? profile.email;
   let sentAt: string | null = null;
-  if (profile.digestEmail) {
-    const result = await sendDigestEmail({
-      to: profile.digestEmail,
-      subject,
-      markdown: structuredBriefToMarkdown(brief)
-    });
+  let emailError: string | null = null;
+  if (deliveryEmail) {
+    try {
+      const result = await sendDigestEmail({
+        to: deliveryEmail,
+        subject,
+        markdown: structuredBriefToMarkdown(brief),
+        html: structuredBriefToHtml(brief)
+      });
 
-    if (result.sent) {
-      sentAt = new Date().toISOString();
-      await admin
-        .from("digests")
-        .update({ sent_at: sentAt })
-        .eq("id", digest.id);
+      if (result.sent) {
+        sentAt = new Date().toISOString();
+        await admin
+          .from("digests")
+          .update({ sent_at: sentAt })
+          .eq("id", digest.id);
+      }
+    } catch (error) {
+      emailError = error instanceof Error ? error.message : "Email failed.";
     }
   }
 
@@ -66,7 +75,8 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     subject,
     body,
     itemCount: items.length,
-    sentAt
+    sentAt,
+    emailError
   };
 }
 
@@ -111,6 +121,8 @@ async function collectArticles(posts: XPost[]) {
 }
 
 async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
+  const learning = await getLearningContext(profile.userId);
+
   if (items.length === 0) {
     return {
       title: "Daily Brief" as const,
@@ -163,6 +175,10 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
       "Reader interest profile:",
       profile.interestProfileMd,
       "",
+      "Explicit learning feedback:",
+      learning.summary,
+      learning.examples.length ? learning.examples.join("\n") : "No examples yet.",
+      "",
       "Candidate items from X, including X-native long posts/articles and linked articles:",
       sourcePack,
       "",
@@ -172,6 +188,10 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
         : "None configured",
       "",
       "If an item comes from a priority handle, treat that as a signal to inspect it more carefully and consider elevating it when the substance matches the reader profile. Do not include it solely because of the handle.",
+      "Diversity is part of quality. Avoid multiple items that say the same thing from the same handle, company, product, or topic cluster.",
+      "If a priority handle posts a thread or several related updates about the same announcement, choose the single most canonical or information-rich post and summarize the cluster once.",
+      "Do not include more than two items from the same priority handle in the Priority Handles section unless they are clearly unrelated stories.",
+      "Prefer a varied brief across authors, companies, products, research, infrastructure, security, and market signals over exhaustive coverage of one source.",
       "",
       "Create a concise structured brief with title exactly: Daily Brief.",
       "",
@@ -191,7 +211,7 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     ].join("\n")
   });
 
-  return attachTweetProvenance(object, items);
+  return diversifyBrief(attachTweetProvenance(object, items));
 }
 
 function attachTweetProvenance(
@@ -213,6 +233,41 @@ function attachTweetProvenance(
         };
       })
     }))
+  };
+}
+
+function diversifyBrief(brief: DailyBrief) {
+  const totalByHandle = new Map<string, number>();
+
+  return {
+    ...brief,
+    sections: brief.sections.map((section) => {
+      const sectionByHandle = new Map<string, number>();
+
+      return {
+        ...section,
+        items: section.items.filter((item) => {
+          const handle = item.viaHandle.toLowerCase();
+          if (!handle) {
+            return true;
+          }
+
+          const sectionCount = sectionByHandle.get(handle) ?? 0;
+          const totalCount = totalByHandle.get(handle) ?? 0;
+          const isPrioritySection =
+            section.title.toLowerCase() === "priority handles";
+          const sectionLimit = isPrioritySection ? 2 : 3;
+
+          if (sectionCount >= sectionLimit || totalCount >= 3) {
+            return false;
+          }
+
+          sectionByHandle.set(handle, sectionCount + 1);
+          totalByHandle.set(handle, totalCount + 1);
+          return true;
+        })
+      };
+    })
   };
 }
 

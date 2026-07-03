@@ -58,12 +58,15 @@ export default async function ProfilePage({
           />
         </label>
         <label>
-          Digest recipient email
+          Delivery email
           <input
             name="digestEmail"
             type="email"
-            defaultValue={profile.digestEmail ?? ""}
+            defaultValue={profile.digestEmail ?? profile.email}
           />
+          <span className="field-help">
+            Defaults to your login email: {profile.email}
+          </span>
         </label>
         <label>
           Markdown interest profile
