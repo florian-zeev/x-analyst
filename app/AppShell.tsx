@@ -8,6 +8,7 @@ const navItems = [
   { href: "/profile", key: "profile", label: "Profile" },
   { href: "/digests", key: "digests", label: "Digests" },
   { href: "/topics", key: "topics", label: "Topics" },
+  { href: "/collection", key: "collection", label: "Collection" },
   { href: "/learning", key: "learning", label: "Learning" },
   { href: "/rejected", key: "rejected", label: "Rejected" }
 ] as const;
@@ -16,7 +17,14 @@ export async function AppShell({
   active,
   children
 }: {
-  active: "dashboard" | "profile" | "digests" | "topics" | "rejected" | "learning";
+  active:
+    | "dashboard"
+    | "profile"
+    | "digests"
+    | "topics"
+    | "collection"
+    | "rejected"
+    | "learning";
   children: ReactNode;
 }) {
   const profile = await getCurrentUserProfile();

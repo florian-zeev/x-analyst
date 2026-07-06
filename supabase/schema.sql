@@ -38,6 +38,10 @@ create table if not exists public.digest_items (
   why text not null,
   takeaway text not null,
   tags text[] not null default '{}',
+  final_url text not null default '',
+  content_title text not null default '',
+  content_description text not null default '',
+  content_text text not null default '',
   rejected_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -57,10 +61,38 @@ create table if not exists public.article_feedback (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.collection_items (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  digest_id uuid references public.digests(id) on delete set null,
+  digest_item_id uuid references public.digest_items(id) on delete set null,
+  digest_subject text not null default '',
+  digest_created_at timestamptz,
+  section_title text not null default '',
+  title text not null,
+  source_label text not null,
+  url text not null,
+  final_url text not null default '',
+  via_handle text not null default '',
+  via_url text not null default '',
+  source_type text not null default '',
+  why text not null default '',
+  takeaway text not null default '',
+  tags text[] not null default '{}',
+  note text not null default '',
+  content_title text not null default '',
+  content_description text not null default '',
+  content_text text not null default '',
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.analyst_profiles enable row level security;
 alter table public.digests enable row level security;
 alter table public.digest_items enable row level security;
 alter table public.article_feedback enable row level security;
+alter table public.collection_items enable row level security;
 
 drop policy if exists "Users can read their analyst profile"
   on public.analyst_profiles;
@@ -111,11 +143,51 @@ create policy "Users can delete their article feedback"
   on public.article_feedback for delete
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can read their collection items"
+  on public.collection_items;
+
+create policy "Users can read their collection items"
+  on public.collection_items for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can create their collection items"
+  on public.collection_items;
+
+create policy "Users can create their collection items"
+  on public.collection_items for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users can update their collection items"
+  on public.collection_items;
+
+create policy "Users can update their collection items"
+  on public.collection_items for update
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users can delete their collection items"
+  on public.collection_items;
+
+create policy "Users can delete their collection items"
+  on public.collection_items for delete
+  using (auth.uid() = user_id);
+
 alter table public.analyst_profiles
   add column if not exists priority_handles text[] not null default '{}';
 
 alter table public.digest_items
   add column if not exists rejected_at timestamptz;
+
+alter table public.digest_items
+  add column if not exists final_url text not null default '';
+
+alter table public.digest_items
+  add column if not exists content_title text not null default '';
+
+alter table public.digest_items
+  add column if not exists content_description text not null default '';
+
+alter table public.digest_items
+  add column if not exists content_text text not null default '';
 
 create index if not exists digests_user_created_idx
   on public.digests (user_id, created_at desc);
@@ -134,6 +206,12 @@ create unique index if not exists digest_items_digest_item_unique_idx
 
 create index if not exists article_feedback_user_created_idx
   on public.article_feedback (user_id, created_at desc);
+
+create unique index if not exists collection_items_user_url_unique_idx
+  on public.collection_items (user_id, url);
+
+create index if not exists collection_items_user_created_idx
+  on public.collection_items (user_id, created_at desc);
 
 create or replace function public.topic_filter_tags(
   profile_user_id uuid,

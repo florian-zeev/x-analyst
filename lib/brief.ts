@@ -41,6 +41,12 @@ export const dailyBriefSchema = z.object({
 
 export type DailyBrief = z.infer<typeof dailyBriefSchema>;
 
+type BriefHtmlOptions = {
+  saveUrlForItem?: (
+    item: DailyBrief["sections"][number]["items"][number]
+  ) => string | undefined;
+};
+
 const structuredBriefEnvelopeSchema = z.object({
   kind: z.literal("x-analyst.daily-brief"),
   version: z.literal(1),
@@ -125,7 +131,10 @@ export function structuredBriefToMarkdown(brief: DailyBrief) {
     .join("\n");
 }
 
-export function structuredBriefToHtml(brief: DailyBrief) {
+export function structuredBriefToHtml(
+  brief: DailyBrief,
+  options: BriefHtmlOptions = {}
+) {
   return `<!doctype html>
 <html>
   <body style="margin:0;background:#ffffff;color:#111111;font-family:Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;">
@@ -136,24 +145,32 @@ export function structuredBriefToHtml(brief: DailyBrief) {
         <p style="margin:0 0 8px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">Summary</p>
         <p style="margin:0;font-size:16px;line-height:1.58;color:#111111;">${escapeHtml(brief.bluf)}</p>
       </section>
-      ${brief.sections.map(renderEmailSection).join("")}
+      ${brief.sections.map((section) => renderEmailSection(section, options)).join("")}
       ${brief.followups.length ? renderFollowups(brief.followups) : ""}
     </main>
   </body>
 </html>`;
 }
 
-function renderEmailSection(section: DailyBrief["sections"][number]) {
+function renderEmailSection(
+  section: DailyBrief["sections"][number],
+  options: BriefHtmlOptions
+) {
   return `<section style="display:block;margin:0 0 42px;">
     <div style="margin-bottom:18px;">
       <h2 style="margin:0 0 10px;font-size:20px;line-height:1.12;text-transform:uppercase;color:#111111;">${escapeHtml(section.title)}</h2>
       ${section.summary ? `<p style="margin:0;color:#686868;font-size:15px;line-height:1.48;">${escapeHtml(section.summary)}</p>` : ""}
     </div>
-    ${section.items.map(renderEmailItem).join("")}
+    ${section.items.map((item) => renderEmailItem(item, options)).join("")}
   </section>`;
 }
 
-function renderEmailItem(item: DailyBrief["sections"][number]["items"][number]) {
+function renderEmailItem(
+  item: DailyBrief["sections"][number]["items"][number],
+  options: BriefHtmlOptions
+) {
+  const saveUrl = options.saveUrlForItem?.(item);
+
   return `<article style="padding-top:0;margin-top:28px;">
     <p style="margin:0 0 8px;color:#686868;font-size:12px;line-height:1.45;">
       <span style="text-transform:uppercase;">${escapeHtml(sourceTypeLabel(item.sourceType))}</span>
@@ -169,7 +186,10 @@ function renderEmailItem(item: DailyBrief["sections"][number]["items"][number]) 
       <p style="margin:0 0 5px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">Takeaway</p>
       <p style="margin:0;color:#111111;font-size:16px;line-height:1.55;">${escapeHtml(item.takeaway)}</p>
     </div>
-    <a href="${escapeAttribute(item.url)}" style="display:inline-block;background:#f1f1f1;color:#111111;font-size:12px;font-weight:700;line-height:1.2;padding:9px 11px;text-decoration:none;text-transform:uppercase;">Read source</a>
+    <p style="margin:0;">
+      <a href="${escapeAttribute(item.url)}" style="display:inline-block;background:#f1f1f1;color:#111111;font-size:12px;font-weight:700;line-height:1.2;padding:9px 11px;text-decoration:none;text-transform:uppercase;">Read source</a>
+      ${saveUrl ? `&nbsp; <a href="${escapeAttribute(saveUrl)}" style="display:inline-block;background:#f1f1f1;color:#111111;font-size:12px;font-weight:700;line-height:1.2;padding:9px 11px;text-decoration:none;text-transform:uppercase;">Save</a>` : ""}
+    </p>
   </article>`;
 }
 

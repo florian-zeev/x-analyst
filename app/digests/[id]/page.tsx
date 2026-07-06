@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
+import { BookmarkForm } from "@/app/digests/BookmarkForm";
 import { ItemFeedbackForm } from "@/app/digests/ItemFeedbackForm";
 import type { DailyBrief } from "@/lib/brief";
 import { parseStructuredBrief } from "@/lib/brief";
@@ -36,14 +37,24 @@ export default async function DigestPage({
 
   const structured = parseStructuredBrief(digest.body_md);
   let rejectedUrls = new Set<string>();
+  let savedUrls = new Set<string>();
 
   if (structured) {
-    const { data: rejectedRows, error: rejectedError } = await admin
-      .from("digest_items")
-      .select("url")
-      .eq("digest_id", digest.id)
-      .eq("user_id", profile.userId)
-      .not("rejected_at", "is", null);
+    const [
+      { data: rejectedRows, error: rejectedError },
+      { data: savedRows, error: savedError }
+    ] = await Promise.all([
+      admin
+        .from("digest_items")
+        .select("url")
+        .eq("digest_id", digest.id)
+        .eq("user_id", profile.userId)
+        .not("rejected_at", "is", null),
+      admin
+        .from("collection_items")
+        .select("url")
+        .eq("user_id", profile.userId)
+    ]);
 
     if (
       rejectedError &&
@@ -53,7 +64,12 @@ export default async function DigestPage({
       throw rejectedError;
     }
 
+    if (savedError && !isMissingCollectionTable(savedError)) {
+      throw savedError;
+    }
+
     rejectedUrls = new Set((rejectedRows ?? []).map((item) => item.url));
+    savedUrls = new Set((savedRows ?? []).map((item) => item.url));
   }
 
   return (
@@ -75,6 +91,7 @@ export default async function DigestPage({
             digestId={digest.id}
             rejectedCount={rejectedUrls.size}
             rejectedUrls={rejectedUrls}
+            savedUrls={savedUrls}
           />
         ) : (
           <article className="brief markdown">
@@ -89,12 +106,14 @@ function StructuredBrief({
   brief,
   digestId,
   rejectedCount,
-  rejectedUrls
+  rejectedUrls,
+  savedUrls
 }: {
   brief: DailyBrief;
   digestId: string;
   rejectedCount: number;
   rejectedUrls: Set<string>;
+  savedUrls: Set<string>;
 }) {
   return (
     <article className="brief brief-doc">
@@ -120,7 +139,9 @@ function StructuredBrief({
                 <div className="brief-items">
                   {visibleItems.map((item, itemIndex) => (
                     <article
-                      className="brief-item"
+                      className={`brief-item ${
+                        savedUrls.has(item.url) ? "is-saved" : ""
+                      }`}
                       key={`${section.id}-${item.url}-${itemIndex}`}
                     >
                       <div className="item-body">
@@ -165,6 +186,11 @@ function StructuredBrief({
                             ))}
                           </div>
                         ) : null}
+                        <BookmarkForm
+                          digestId={digestId}
+                          initialSaved={savedUrls.has(item.url)}
+                          itemUrl={item.url}
+                        />
                         <ItemFeedbackForm digestId={digestId} item={item} />
                       </div>
                     </article>
@@ -225,6 +251,15 @@ function isMissingRejectedColumn(error: { code?: string; message?: string }) {
   return (
     error.code === "42703" ||
     error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
+}
+
+function isMissingCollectionTable(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message?.includes("collection_items") ||
     error.message?.includes("schema cache")
   );
 }

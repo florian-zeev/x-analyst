@@ -12,6 +12,10 @@ import { getLearningContext } from "@/lib/learning";
 import { type AnalystProfile } from "@/lib/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchXPosts, type XPost } from "@/lib/x";
+import {
+  canCreateCollectionSaveLinks,
+  createCollectionSaveToken
+} from "@/lib/collection-token";
 
 export type DigestItem = {
   post: XPost;
@@ -52,7 +56,8 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     userId: profile.userId,
     subject,
     createdAt: digest.created_at,
-    brief
+    brief,
+    sourceItems: items
   });
 
   const deliveryEmail = profile.digestEmail ?? profile.email;
@@ -64,7 +69,11 @@ export async function runDigestForProfile(profile: AnalystProfile) {
         to: deliveryEmail,
         subject,
         markdown: structuredBriefToMarkdown(brief),
-        html: structuredBriefToHtml(brief)
+        html: structuredBriefToHtml(brief, {
+          saveUrlForItem: canCreateCollectionSaveLinks()
+            ? (item) => collectionSaveUrl(profile.userId, digest.id, item.url)
+            : undefined
+        })
       });
 
       if (result.sent) {
@@ -94,31 +103,41 @@ export async function storeDigestItemsForBrief({
   userId,
   subject,
   createdAt,
-  brief
+  brief,
+  sourceItems = []
 }: {
   digestId: string;
   userId: string;
   subject: string;
   createdAt: string;
   brief: DailyBrief;
+  sourceItems?: DigestItem[];
 }) {
   const rows = brief.sections.flatMap((section) =>
-    section.items.map((item) => ({
-      digest_id: digestId,
-      user_id: userId,
-      digest_subject: subject,
-      digest_created_at: createdAt,
-      section_title: section.title,
-      title: item.title,
-      source_label: item.sourceLabel,
-      url: item.url,
-      via_handle: item.viaHandle,
-      via_url: item.viaUrl,
-      source_type: item.sourceType,
-      why: item.why,
-      takeaway: item.takeaway,
-      tags: item.tags
-    }))
+    section.items.map((item) => {
+      const sourceItem = findSourceItem(item.url, sourceItems);
+
+      return {
+        digest_id: digestId,
+        user_id: userId,
+        digest_subject: subject,
+        digest_created_at: createdAt,
+        section_title: section.title,
+        title: item.title,
+        source_label: item.sourceLabel,
+        url: item.url,
+        via_handle: item.viaHandle,
+        via_url: item.viaUrl,
+        source_type: item.sourceType,
+        why: item.why,
+        takeaway: item.takeaway,
+        tags: item.tags,
+        final_url: sourceItem?.article.finalUrl ?? item.url,
+        content_title: sourceItem?.article.title ?? item.title,
+        content_description: sourceItem?.article.description ?? "",
+        content_text: sourceItem?.article.text ?? ""
+      };
+    })
   );
 
   if (!rows.length) {
@@ -132,8 +151,47 @@ export async function storeDigestItemsForBrief({
   });
 
   if (error) {
+    if (isMissingDigestSnapshotColumns(error)) {
+      const fallbackRows = rows.map(
+        ({
+          final_url,
+          content_title,
+          content_description,
+          content_text,
+          ...row
+        }) => row
+      );
+      const { error: fallbackError } = await admin
+        .from("digest_items")
+        .upsert(fallbackRows, {
+          ignoreDuplicates: true,
+          onConflict: "digest_id,section_title,url,title"
+        });
+
+      if (!fallbackError) {
+        return;
+      }
+    }
+
     throw error;
   }
+}
+
+function collectionSaveUrl(userId: string, digestId: string, url: string) {
+  const baseUrl = process.env.APP_BASE_URL;
+  if (!baseUrl) {
+    return undefined;
+  }
+
+  const token = createCollectionSaveToken({
+    userId,
+    digestId,
+    url
+  });
+
+  return `${baseUrl.replace(/\/$/, "")}/collection/save?token=${encodeURIComponent(
+    token
+  )}`;
 }
 
 async function collectArticles(posts: XPost[]) {
@@ -383,6 +441,19 @@ function isMissingRejectedColumn(error: { code?: string; message?: string }) {
   return (
     error.code === "42703" ||
     error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
+}
+
+function isMissingDigestSnapshotColumns(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "42703" ||
+    error.code === "PGRST204" ||
+    error.message?.includes("final_url") ||
+    error.message?.includes("content_text") ||
     error.message?.includes("schema cache")
   );
 }

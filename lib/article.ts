@@ -37,7 +37,7 @@ export async function fetchArticle(url: string): Promise<ArticleSnapshot> {
       finalUrl: response.url || url,
       title: cleanText(title).slice(0, 240),
       description: cleanText(description).slice(0, 500),
-      text: extractReadableText(html).slice(0, 5000),
+      text: extractReadableText(html).slice(0, 30000),
       fetched: true
     };
   } catch {

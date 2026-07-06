@@ -4,8 +4,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { saveCollectionItemFromDigest } from "@/lib/collection";
+import { verifyCollectionSaveToken } from "@/lib/collection-token";
 import { runDigestForProfile } from "@/lib/digest";
 import { getCurrentUserProfile } from "@/lib/profile";
+
+export type CollectionSaveState = {
+  type: "idle" | "success" | "error";
+  message: string;
+};
 
 export async function saveProfile(formData: FormData) {
   const profile = await getCurrentUserProfile();
@@ -276,10 +283,169 @@ export async function restoreRejectedArticle(formData: FormData) {
   redirect("/rejected?type=success&message=Article restored.");
 }
 
+export async function saveCollectionItem(formData: FormData) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const digestId = String(formData.get("digestId") ?? "");
+  const itemUrl = String(formData.get("itemUrl") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!digestId || !itemUrl) {
+    redirect("/collection?type=error&message=Missing collection item.");
+  }
+
+  try {
+    await saveCollectionItemFromDigest({
+      userId: profile.userId,
+      digestId,
+      itemUrl,
+      note
+    });
+  } catch (error) {
+    const message = collectionErrorMessage(error);
+    redirect(
+      `/digests/${digestId}?type=error&message=${encodeURIComponent(message)}`
+    );
+  }
+
+  revalidatePath("/collection");
+  revalidatePath(`/digests/${digestId}`);
+  redirect(
+    `/digests/${digestId}?type=success&message=${encodeURIComponent(
+      "Saved to collection."
+    )}`
+  );
+}
+
+export async function saveCollectionItemInline(
+  _previousState: CollectionSaveState,
+  formData: FormData
+): Promise<CollectionSaveState> {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    return {
+      type: "error" as const,
+      message: "Sign in again to save this item."
+    };
+  }
+
+  const digestId = String(formData.get("digestId") ?? "");
+  const itemUrl = String(formData.get("itemUrl") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!digestId || !itemUrl) {
+    return {
+      type: "error" as const,
+      message: "Missing collection item."
+    };
+  }
+
+  try {
+    await saveCollectionItemFromDigest({
+      userId: profile.userId,
+      digestId,
+      itemUrl,
+      note
+    });
+  } catch (error) {
+    return {
+      type: "error" as const,
+      message: collectionErrorMessage(error)
+    };
+  }
+
+  revalidatePath("/collection");
+  revalidatePath(`/digests/${digestId}`);
+  return {
+    type: "success" as const,
+    message: "Saved to collection."
+  };
+}
+
+export async function saveCollectionItemFromEmail(formData: FormData) {
+  const token = String(formData.get("token") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
+  const payload = verifyCollectionSaveToken(token);
+
+  if (!payload) {
+    redirect(
+      "/collection/save?type=error&message=This save link is invalid or expired."
+    );
+  }
+
+  try {
+    await saveCollectionItemFromDigest({
+      userId: payload.userId,
+      digestId: payload.digestId,
+      itemUrl: payload.url,
+      note
+    });
+  } catch (error) {
+    const message = collectionErrorMessage(error);
+    redirect(
+      `/collection/save?type=error&message=${encodeURIComponent(message)}`
+    );
+  }
+
+  revalidatePath("/collection");
+  redirect(
+    `/collection/save?type=success&message=${encodeURIComponent(
+      "Saved to collection."
+    )}`
+  );
+}
+
 function isMissingRejectedColumn(error: { code?: string; message?: string }) {
   return (
     error.code === "42703" ||
     error.message?.includes("rejected_at") ||
     error.message?.includes("schema cache")
   );
+}
+
+function collectionErrorMessage(error: unknown) {
+  const details = normalizeActionError(error);
+
+  if (
+    details.code === "42P01" ||
+    details.code === "42703" ||
+    details.code === "PGRST204" ||
+    details.code === "PGRST205" ||
+    details.message.includes("collection_items") ||
+    details.message.includes("schema cache")
+  ) {
+    return "Collection needs the latest Supabase schema. Run supabase/schema.sql, then try saving again.";
+  }
+
+  return details.message || "Could not save this item.";
+}
+
+function normalizeActionError(error: unknown) {
+  if (error instanceof Error) {
+    return {
+      code: "",
+      message: error.message
+    };
+  }
+
+  if (error && typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const code = typeof record.code === "string" ? record.code : "";
+    const message =
+      typeof record.message === "string"
+        ? record.message
+        : JSON.stringify(record);
+
+    return { code, message };
+  }
+
+  return {
+    code: "",
+    message: String(error || "")
+  };
 }
