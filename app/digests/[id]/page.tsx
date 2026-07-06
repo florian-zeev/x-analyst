@@ -35,6 +35,26 @@ export default async function DigestPage({
   }
 
   const structured = parseStructuredBrief(digest.body_md);
+  let rejectedUrls = new Set<string>();
+
+  if (structured) {
+    const { data: rejectedRows, error: rejectedError } = await admin
+      .from("digest_items")
+      .select("url")
+      .eq("digest_id", digest.id)
+      .eq("user_id", profile.userId)
+      .not("rejected_at", "is", null);
+
+    if (
+      rejectedError &&
+      rejectedError.code !== "PGRST204" &&
+      !isMissingRejectedColumn(rejectedError)
+    ) {
+      throw rejectedError;
+    }
+
+    rejectedUrls = new Set((rejectedRows ?? []).map((item) => item.url));
+  }
 
   return (
     <AppShell active="digests">
@@ -50,7 +70,12 @@ export default async function DigestPage({
           </p>
         ) : null}
         {structured ? (
-          <StructuredBrief brief={structured.brief} digestId={digest.id} />
+          <StructuredBrief
+            brief={structured.brief}
+            digestId={digest.id}
+            rejectedCount={rejectedUrls.size}
+            rejectedUrls={rejectedUrls}
+          />
         ) : (
           <article className="brief markdown">
             {renderMarkdown(normalizeLegacyBrief(digest.body_md))}
@@ -62,10 +87,14 @@ export default async function DigestPage({
 
 function StructuredBrief({
   brief,
-  digestId
+  digestId,
+  rejectedCount,
+  rejectedUrls
 }: {
   brief: DailyBrief;
   digestId: string;
+  rejectedCount: number;
+  rejectedUrls: Set<string>;
 }) {
   return (
     <article className="brief brief-doc">
@@ -75,62 +104,78 @@ function StructuredBrief({
       </section>
 
       <div className="brief-sections">
-        {brief.sections.map((section) => (
-          <section className="brief-section" key={section.id}>
-            <div className="section-heading">
-              <h2>{section.title}</h2>
-              {section.summary ? <p>{section.summary}</p> : null}
-            </div>
+        {brief.sections.map((section) => {
+          const visibleItems = section.items.filter(
+            (item) => !rejectedUrls.has(item.url)
+          );
 
-            {section.items.length ? (
-              <div className="brief-items">
-                {section.items.map((item, itemIndex) => (
-                  <article className="brief-item" key={`${section.id}-${item.url}-${itemIndex}`}>
-                    <div className="item-body">
-                      <div className="item-kicker">
-                        <span>{sourceTypeLabel(item.sourceType)}</span>
-                        <a href={item.url} rel="noreferrer" target="_blank">
-                          {item.sourceLabel}
-                        </a>
-                        {item.viaUrl ? (
-                          <>
-                            <span>via</span>
-                            <a href={item.viaUrl} rel="noreferrer" target="_blank">
-                              {item.viaHandle || "X"}
-                            </a>
-                          </>
-                        ) : null}
-                      </div>
-                      <h3>{item.title}</h3>
-                      <dl>
-                        <div>
-                          <dt>Why</dt>
-                          <dd>{item.why}</dd>
-                        </div>
-                        <div>
-                          <dt>Takeaway</dt>
-                          <dd>{item.takeaway}</dd>
-                        </div>
-                      </dl>
-                      {item.tags.length ? (
-                        <div className="item-tags">
-                          {item.tags.map((tag) => (
-                            <a href={`/topics?tag=${encodeURIComponent(tag)}`} key={tag}>
-                              {tag}
-                            </a>
-                          ))}
-                        </div>
-                      ) : null}
-                      <ItemFeedbackForm digestId={digestId} item={item} />
-                    </div>
-                  </article>
-                ))}
+          return (
+            <section className="brief-section" key={section.id}>
+              <div className="section-heading">
+                <h2>{section.title}</h2>
+                {section.summary ? <p>{section.summary}</p> : null}
               </div>
-            ) : (
-              <p className="muted">No items in this section.</p>
-            )}
-          </section>
-        ))}
+
+              {visibleItems.length ? (
+                <div className="brief-items">
+                  {visibleItems.map((item, itemIndex) => (
+                    <article
+                      className="brief-item"
+                      key={`${section.id}-${item.url}-${itemIndex}`}
+                    >
+                      <div className="item-body">
+                        <div className="item-kicker">
+                          <span>{sourceTypeLabel(item.sourceType)}</span>
+                          <a href={item.url} rel="noreferrer" target="_blank">
+                            {item.sourceLabel}
+                          </a>
+                          {item.viaUrl ? (
+                            <>
+                              <span>via</span>
+                              <a
+                                href={item.viaUrl}
+                                rel="noreferrer"
+                                target="_blank"
+                              >
+                                {item.viaHandle || "X"}
+                              </a>
+                            </>
+                          ) : null}
+                        </div>
+                        <h3>{item.title}</h3>
+                        <dl>
+                          <div>
+                            <dt>Why</dt>
+                            <dd>{item.why}</dd>
+                          </div>
+                          <div>
+                            <dt>Takeaway</dt>
+                            <dd>{item.takeaway}</dd>
+                          </div>
+                        </dl>
+                        {item.tags.length ? (
+                          <div className="item-tags">
+                            {item.tags.map((tag) => (
+                              <a
+                                href={`/topics?tag=${encodeURIComponent(tag)}`}
+                                key={tag}
+                              >
+                                {tag}
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
+                        <ItemFeedbackForm digestId={digestId} item={item} />
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="muted">No visible items in this section.</p>
+              )}
+            </section>
+          );
+        })}
       </div>
 
       {brief.followups.length ? (
@@ -141,6 +186,18 @@ function StructuredBrief({
               <li key={followup}>{followup}</li>
             ))}
           </ul>
+        </section>
+      ) : null}
+
+      {rejectedCount ? (
+        <section className="brief-rejected-note" aria-label="Rejected items">
+          <p>
+            {rejectedCount} rejected {rejectedCount === 1 ? "item" : "items"}{" "}
+            hidden from this brief.
+          </p>
+          <a href={`/rejected?digest=${encodeURIComponent(digestId)}`}>
+            Review
+          </a>
         </section>
       ) : null}
     </article>
@@ -162,4 +219,12 @@ function sourceTypeLabel(
     .split("-")
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function isMissingRejectedColumn(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42703" ||
+    error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
 }

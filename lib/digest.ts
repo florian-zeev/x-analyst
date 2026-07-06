@@ -25,7 +25,8 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     discoveryQueries: profile.discoveryQueries
   });
 
-  const items = await collectArticles(posts);
+  const rejectedUrls = await getRejectedUrls(profile.userId);
+  const items = filterRejectedItems(await collectArticles(posts), rejectedUrls);
   const brief = await writeBrief(profile, items);
   const body = encodeStructuredBrief(brief);
   const subject = `X Analyst Brief - ${new Date().toISOString().slice(0, 10)}`;
@@ -173,6 +174,37 @@ async function collectArticles(posts: XPost[]) {
   }
 
   return candidates.slice(0, 50);
+}
+
+async function getRejectedUrls(userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("digest_items")
+    .select("url")
+    .eq("user_id", userId)
+    .not("rejected_at", "is", null);
+
+  if (error) {
+    if (isMissingRejectedColumn(error)) {
+      return new Set<string>();
+    }
+
+    throw error;
+  }
+
+  return new Set((data ?? []).map((item) => normalizeUrl(item.url)));
+}
+
+function filterRejectedItems(items: DigestItem[], rejectedUrls: Set<string>) {
+  if (!rejectedUrls.size) {
+    return items;
+  }
+
+  return items.filter(
+    (item) =>
+      !rejectedUrls.has(normalizeUrl(item.article.finalUrl)) &&
+      !rejectedUrls.has(normalizeUrl(item.article.url))
+  );
 }
 
 async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
@@ -345,6 +377,14 @@ function normalizeUrl(url: string) {
   } catch {
     return url;
   }
+}
+
+function isMissingRejectedColumn(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42703" ||
+    error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
 }
 
 function isSubstantialXPost(post: XPost) {

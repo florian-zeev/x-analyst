@@ -38,6 +38,7 @@ create table if not exists public.digest_items (
   why text not null,
   takeaway text not null,
   tags text[] not null default '{}',
+  rejected_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -110,6 +111,12 @@ create policy "Users can delete their article feedback"
   on public.article_feedback for delete
   using (auth.uid() = user_id);
 
+alter table public.analyst_profiles
+  add column if not exists priority_handles text[] not null default '{}';
+
+alter table public.digest_items
+  add column if not exists rejected_at timestamptz;
+
 create index if not exists digests_user_created_idx
   on public.digests (user_id, created_at desc);
 
@@ -119,14 +126,14 @@ create index if not exists digest_items_user_created_idx
 create index if not exists digest_items_tags_idx
   on public.digest_items using gin (tags);
 
+create index if not exists digest_items_user_rejected_idx
+  on public.digest_items (user_id, rejected_at, digest_created_at desc);
+
 create unique index if not exists digest_items_digest_item_unique_idx
   on public.digest_items (digest_id, section_title, url, title);
 
 create index if not exists article_feedback_user_created_idx
   on public.article_feedback (user_id, created_at desc);
-
-alter table public.analyst_profiles
-  add column if not exists priority_handles text[] not null default '{}';
 
 create or replace function public.topic_filter_tags(
   profile_user_id uuid,
@@ -140,6 +147,7 @@ as $$
   from public.digest_items di
   cross join lateral unnest(di.tags) as tag
   where di.user_id = profile_user_id
+    and di.rejected_at is null
     and (
       coalesce(cardinality(selected_tags), 0) = 0
       or di.tags @> selected_tags

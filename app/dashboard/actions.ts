@@ -187,7 +187,99 @@ export async function saveArticleFeedback(formData: FormData) {
     redirect(`/digests/${digestId}?type=error&message=${encodeURIComponent(message)}`);
   }
 
+  const rejectionUpdate =
+    direction === "less"
+      ? { rejected_at: new Date().toISOString() }
+      : { rejected_at: null };
+  const { error: rejectionError } = await admin
+    .from("digest_items")
+    .update(rejectionUpdate)
+    .eq("user_id", profile.userId)
+    .eq("url", itemUrl);
+
+  if (rejectionError && isMissingRejectedColumn(rejectionError)) {
+    redirect(
+      `/digests/${digestId}?type=warning&message=${encodeURIComponent(
+        "Feedback saved, but rejected articles need the latest Supabase schema. Run supabase/schema.sql so less-like-this can hide items."
+      )}`
+    );
+  }
+
+  if (rejectionError && rejectionError.code !== "PGRST204") {
+    redirect(
+      `/digests/${digestId}?type=error&message=${encodeURIComponent(
+        rejectionError.message
+      )}`
+    );
+  }
+
   revalidatePath(`/digests/${digestId}`);
+  revalidatePath("/topics");
+  revalidatePath("/rejected");
   revalidatePath("/learning");
   redirect(`/digests/${digestId}?type=success&message=Feedback saved.`);
+}
+
+export async function restoreRejectedArticle(formData: FormData) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const itemUrl = String(formData.get("itemUrl") ?? "");
+  const itemTitle = String(formData.get("itemTitle") ?? "");
+  const sourceLabel = String(formData.get("sourceLabel") ?? "");
+  const viaHandle = String(formData.get("viaHandle") ?? "");
+  const tags = String(formData.get("tags") ?? "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  if (!itemUrl) {
+    redirect("/rejected?type=error&message=Missing article URL.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("digest_items")
+    .update({ rejected_at: null })
+    .eq("user_id", profile.userId)
+    .eq("url", itemUrl);
+
+  if (error) {
+    if (isMissingRejectedColumn(error)) {
+      redirect(
+        "/rejected?type=error&message=Rejected articles need the latest Supabase schema. Run supabase/schema.sql, then try again."
+      );
+    }
+
+    redirect(`/rejected?type=error&message=${encodeURIComponent(error.message)}`);
+  }
+
+  await admin.from("article_feedback").insert({
+    user_id: profile.userId,
+    item_url: itemUrl,
+    item_title: itemTitle,
+    source_label: sourceLabel,
+    via_handle: viaHandle,
+    tags,
+    direction: "more",
+    reason: "restored",
+    note: "Restored from rejected articles."
+  });
+
+  revalidatePath("/rejected");
+  revalidatePath("/topics");
+  revalidatePath("/digests");
+  revalidatePath("/learning");
+  redirect("/rejected?type=success&message=Article restored.");
+}
+
+function isMissingRejectedColumn(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42703" ||
+    error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
 }

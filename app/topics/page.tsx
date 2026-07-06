@@ -44,6 +44,7 @@ export default async function TopicsPage({
     .from("digest_items")
     .select("*", { count: "exact" })
     .eq("user_id", profile.userId)
+    .is("rejected_at", null)
     .order("digest_created_at", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -52,17 +53,53 @@ export default async function TopicsPage({
     itemQuery = itemQuery.contains("tags", selectedTags);
   }
 
-  const [{ data: itemRows, count, error: itemError }, { data: tagRows }] =
-    await Promise.all([
-      itemQuery,
-      admin.rpc("topic_filter_tags", {
-        profile_user_id: profile.userId,
-        selected_tags: selectedTags
-      })
-    ]);
+  const [itemResult, tagResult] = await Promise.all([
+    itemQuery,
+    admin.rpc("topic_filter_tags", {
+      profile_user_id: profile.userId,
+      selected_tags: selectedTags
+    })
+  ]);
 
-  if (itemError) {
-    throw itemError;
+  let itemRows = itemResult.data;
+  let count = itemResult.count;
+  let tagRows = tagResult.data;
+  let needsRejectedMigration = false;
+
+  if (itemResult.error) {
+    if (!isMissingRejectedColumn(itemResult.error)) {
+      throw itemResult.error;
+    }
+
+    needsRejectedMigration = true;
+    let fallbackQuery = admin
+      .from("digest_items")
+      .select("*", { count: "exact" })
+      .eq("user_id", profile.userId)
+      .order("digest_created_at", { ascending: false })
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (selectedTags.length) {
+      fallbackQuery = fallbackQuery.contains("tags", selectedTags);
+    }
+
+    const fallbackResult = await fallbackQuery;
+    if (fallbackResult.error) {
+      throw fallbackResult.error;
+    }
+
+    itemRows = fallbackResult.data;
+    count = fallbackResult.count;
+  }
+
+  if (tagResult.error) {
+    if (!isMissingRejectedColumn(tagResult.error)) {
+      throw tagResult.error;
+    }
+
+    needsRejectedMigration = true;
+    tagRows = [];
   }
 
   const items: TopicItem[] = (itemRows ?? []).map((item) => ({
@@ -100,6 +137,12 @@ export default async function TopicsPage({
           </p>
         </div>
       </div>
+      {needsRejectedMigration ? (
+        <p className="notice warning">
+          Rejected article filtering needs the latest Supabase schema. Run
+          supabase/schema.sql to hide less-like-this items from topics.
+        </p>
+      ) : null}
 
       <div className="topics-layout">
         <aside className="topic-filter-panel">
@@ -226,4 +269,12 @@ function topicHref(tags: string[], page = 1) {
 
   const query = params.toString();
   return query ? `/topics?${query}` : "/topics";
+}
+
+function isMissingRejectedColumn(error: { code?: string; message?: string }) {
+  return (
+    error.code === "42703" ||
+    error.message?.includes("rejected_at") ||
+    error.message?.includes("schema cache")
+  );
 }

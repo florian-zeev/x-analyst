@@ -1,15 +1,15 @@
 import Link from "next/link";
+import { SignOutIcon } from "@/app/AppShell";
+import { signOut } from "@/app/dashboard/actions";
 import { hasSupabasePublicEnv } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function Home() {
-  let isSignedIn = false;
+  const profile = hasSupabasePublicEnv()
+    ? await getCurrentUserProfile()
+    : null;
 
-  if (hasSupabasePublicEnv()) {
-    const supabase = await createClient();
-    const { data } = await supabase.auth.getClaims();
-    isSignedIn = Boolean(data?.claims);
-  }
+  const isSignedIn = Boolean(profile);
 
   return (
     <main className="home">
@@ -19,14 +19,25 @@ export default async function Home() {
         </Link>
         <nav className="home-nav">
           {isSignedIn ? (
-            <Link href="/digests">Digests</Link>
-          ) : null}
-          <Link
-            className="button landing-sign-in"
-            href={isSignedIn ? "/dashboard" : "/login"}
-          >
-            {isSignedIn ? "Open dashboard" : "Sign in"}
-          </Link>
+            <>
+              <Link href="/digests">Digests</Link>
+              <Link className="button landing-sign-in" href="/dashboard">
+                Open dashboard
+              </Link>
+              <div className="home-account">
+                <span title={profile?.email}>{profile?.email}</span>
+                <form action={signOut}>
+                  <button aria-label="Sign out" title="Sign out" type="submit">
+                    <SignOutIcon />
+                  </button>
+                </form>
+              </div>
+            </>
+          ) : (
+            <Link className="button landing-sign-in" href="/login">
+              Sign in
+            </Link>
+          )}
         </nav>
       </header>
 

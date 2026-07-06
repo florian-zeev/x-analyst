@@ -86,6 +86,7 @@ export type Database = {
           why: string;
           takeaway: string;
           tags: string[];
+          rejected_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -104,6 +105,7 @@ export type Database = {
           why: string;
           takeaway: string;
           tags?: string[];
+          rejected_at?: string | null;
           created_at?: string;
         };
         Update: {
@@ -119,6 +121,7 @@ export type Database = {
           why?: string;
           takeaway?: string;
           tags?: string[];
+          rejected_at?: string | null;
         };
         Relationships: [];
       };
