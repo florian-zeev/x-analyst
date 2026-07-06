@@ -98,7 +98,7 @@ export function structuredBriefToMarkdown(brief: DailyBrief) {
   return [
     `# ${brief.title}`,
     "",
-    "## BLUF",
+    "## Summary",
     "",
     brief.bluf,
     "",
@@ -132,9 +132,9 @@ export function structuredBriefToHtml(brief: DailyBrief) {
     <main style="max-width:640px;margin:0 auto;padding:28px 18px 36px;">
       <p style="margin:0 0 8px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">X Analyst</p>
       <h1 style="margin:0 0 22px;font-size:28px;line-height:1.12;color:#111111;">${escapeHtml(brief.title)}</h1>
-      <section style="border-top:1px solid #b8b8b8;border-bottom:1px solid #e6e6e6;padding:20px 0;margin-bottom:30px;">
-        <p style="margin:0 0 8px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">BLUF</p>
-        <p style="margin:0;font-size:18px;line-height:1.48;color:#111111;">${escapeHtml(brief.bluf)}</p>
+      <section style="padding:4px 0 12px;margin-bottom:34px;">
+        <p style="margin:0 0 8px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">Summary</p>
+        <p style="margin:0;font-size:16px;line-height:1.58;color:#111111;">${escapeHtml(brief.bluf)}</p>
       </section>
       ${brief.sections.map(renderEmailSection).join("")}
       ${brief.followups.length ? renderFollowups(brief.followups) : ""}
@@ -144,9 +144,9 @@ export function structuredBriefToHtml(brief: DailyBrief) {
 }
 
 function renderEmailSection(section: DailyBrief["sections"][number]) {
-  return `<section style="display:block;margin:0 0 36px;">
-    <div style="border-top:2px solid #111111;padding-top:12px;margin-bottom:16px;">
-      <h2 style="margin:0 0 8px;font-size:14px;line-height:1.3;text-transform:uppercase;color:#111111;">${escapeHtml(section.title)}</h2>
+  return `<section style="display:block;margin:0 0 42px;">
+    <div style="margin-bottom:18px;">
+      <h2 style="margin:0 0 10px;font-size:20px;line-height:1.12;text-transform:uppercase;color:#111111;">${escapeHtml(section.title)}</h2>
       ${section.summary ? `<p style="margin:0;color:#686868;font-size:15px;line-height:1.48;">${escapeHtml(section.summary)}</p>` : ""}
     </div>
     ${section.items.map(renderEmailItem).join("")}
@@ -154,13 +154,13 @@ function renderEmailSection(section: DailyBrief["sections"][number]) {
 }
 
 function renderEmailItem(item: DailyBrief["sections"][number]["items"][number]) {
-  return `<article style="border-top:1px solid #e6e6e6;padding-top:22px;margin-top:24px;">
+  return `<article style="padding-top:0;margin-top:28px;">
     <p style="margin:0 0 8px;color:#686868;font-size:12px;line-height:1.45;">
       <span style="text-transform:uppercase;">${escapeHtml(sourceTypeLabel(item.sourceType))}</span>
       &nbsp; <a href="${escapeAttribute(item.url)}" style="color:#111111;font-weight:700;text-decoration:underline;text-underline-offset:2px;">${escapeHtml(item.sourceLabel)}</a>
       ${item.viaUrl ? `&nbsp; via <a href="${escapeAttribute(item.viaUrl)}" style="color:#111111;font-weight:700;text-decoration:underline;">${escapeHtml(item.viaHandle || "X")}</a>` : ""}
     </p>
-    <h3 style="margin:0 0 16px;font-size:21px;line-height:1.23;color:#111111;">${escapeHtml(item.title)}</h3>
+    <h3 style="margin:0 0 16px;font-size:19px;line-height:1.28;color:#111111;">${escapeHtml(item.title)}</h3>
     <div style="margin:0 0 14px;">
       <p style="margin:0 0 5px;color:#686868;font-size:11px;line-height:1.3;text-transform:uppercase;">Why</p>
       <p style="margin:0;color:#111111;font-size:16px;line-height:1.55;">${escapeHtml(item.why)}</p>
@@ -174,8 +174,8 @@ function renderEmailItem(item: DailyBrief["sections"][number]["items"][number]) 
 }
 
 function renderFollowups(followups: string[]) {
-  return `<section style="border-top:1px solid #e6e6e6;padding-top:22px;margin-top:32px;">
-    <h2 style="margin:0 0 12px;font-size:14px;line-height:1.3;text-transform:uppercase;color:#111111;">Suggested Follow-Ups</h2>
+  return `<section style="padding-top:2px;margin-top:34px;">
+    <h2 style="margin:0 0 12px;font-size:20px;line-height:1.12;text-transform:uppercase;color:#111111;">Suggested Follow-Ups</h2>
     <ul style="margin:0;padding-left:20px;color:#111111;font-size:16px;line-height:1.55;">
       ${followups.map((followup) => `<li>${escapeHtml(followup)}</li>`).join("")}
     </ul>

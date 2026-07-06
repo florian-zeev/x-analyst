@@ -70,7 +70,7 @@ function StructuredBrief({
   return (
     <article className="brief brief-doc">
       <section className="brief-bluf">
-        <p className="eyebrow">BLUF</p>
+        <p className="eyebrow">Summary</p>
         <p>{brief.bluf}</p>
       </section>
 

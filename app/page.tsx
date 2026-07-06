@@ -1,47 +1,77 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { hasSupabasePublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function Home() {
+  let isSignedIn = false;
+
   if (hasSupabasePublicEnv()) {
     const supabase = await createClient();
     const { data } = await supabase.auth.getClaims();
-
-    if (data?.claims) {
-      redirect("/dashboard");
-    }
+    isSignedIn = Boolean(data?.claims);
   }
 
   return (
-    <main className="shell">
-      <aside className="sidebar">
-        <h1 className="brand">X Analyst</h1>
-        <p className="muted">
-          A private daily brief for curated X sources, linked articles, and
-          the topics you care about.
-        </p>
-        <p className="sidebar-credit">
+    <main className="home">
+      <header className="home-header">
+        <Link className="home-brand" href="/">
+          X Analyst
+        </Link>
+        <nav className="home-nav">
+          {isSignedIn ? (
+            <Link href="/digests">Digests</Link>
+          ) : null}
+          <Link
+            className="button landing-sign-in"
+            href={isSignedIn ? "/dashboard" : "/login"}
+          >
+            {isSignedIn ? "Open dashboard" : "Sign in"}
+          </Link>
+        </nav>
+      </header>
+
+      <section className="home-hero">
+        <div className="home-copy">
+          <p className="eyebrow">Daily brief</p>
+          <h1>Custom intelligence from X</h1>
+          <p>
+            Get the posts, links, and launches worth your attention, filtered
+            by what you care about.
+          </p>
+        </div>
+      </section>
+
+      <section className="home-detail">
+        <article>
+          <h2>Your signal</h2>
+          <p>
+            Tell X Analyst what matters. It uses that profile to decide what
+            deserves to make the brief.
+          </p>
+        </article>
+        <article>
+          <h2>Your feedback</h2>
+          <p>
+            Mark items as more or less useful, and future briefs adapt to your
+            judgment.
+          </p>
+        </article>
+        <article>
+          <h2>Your morning</h2>
+          <p>
+            Receive a short daily brief by email, with every digest saved for
+            review later.
+          </p>
+        </article>
+      </section>
+
+      <footer className="home-footer">
+        <p>
           (c) 2026{" "}
           <a href="https://www.fwolf.io" rel="noreferrer" target="_blank">
             Florian Wolf
           </a>
         </p>
-      </aside>
-      <section className="main landing-main">
-        <div className="landing-hero">
-          <div>
-            <p className="eyebrow">Briefing room</p>
-            <h1>X intelligence, edited down to a daily brief.</h1>
-            <p>
-              X Analyst reads your chosen sources, follows linked articles, and
-              ranks what matters against your own written interest profile.
-            </p>
-          </div>
-          <Link className="button landing-sign-in" href="/login">
-            Sign in
-          </Link>
-        </div>
         {!hasSupabasePublicEnv() ? (
           <p className="notice">
             Supabase is not configured yet. Copy `.env.example` to `.env.local`
@@ -49,29 +79,7 @@ export default async function Home() {
             signing in.
           </p>
         ) : null}
-        <div className="grid">
-          <section className="panel">
-            <h2>Sources</h2>
-            <p className="muted">
-              Curated X lists, priority handles, discovery searches, native
-              posts, and links worth opening.
-            </p>
-          </section>
-          <section className="panel">
-            <h2>Profile</h2>
-            <p className="muted">
-              A Markdown brief of what you care about, plus feedback that tunes
-              future selection.
-            </p>
-          </section>
-          <section className="panel">
-            <h2>Delivery</h2>
-            <p className="muted">
-              Stored digests, scheduled runs, and email delivery via Resend.
-            </p>
-          </section>
-        </div>
-      </section>
+      </footer>
     </main>
   );
 }

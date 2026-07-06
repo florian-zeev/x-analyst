@@ -66,38 +66,26 @@ export default async function LearningPage() {
       <section className="panel learning-list">
         <h2>Recent feedback</h2>
         {feedback?.length ? (
-          <div className="table-wrap">
-            <table className="digests-table">
-              <thead>
-                <tr>
-                  <th>Direction</th>
-                  <th>Item</th>
-                  <th>Reason</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {feedback.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.direction}</td>
-                    <td>
-                      <a className="table-title" href={item.item_url}>
-                        {item.item_title}
-                      </a>
-                      <p className="muted">
-                        {item.source_label}
-                        {item.via_handle ? ` via ${item.via_handle}` : ""}
-                      </p>
-                    </td>
-                    <td>
-                      {item.reason || "none"}
-                      {item.note ? <p className="muted">{item.note}</p> : null}
-                    </td>
-                    <td>{new Date(item.created_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="feedback-list">
+            {feedback.map((item) => (
+              <article className="feedback-row" key={item.id}>
+                <p className="feedback-direction">{item.direction}</p>
+                <div>
+                  <a className="table-title" href={item.item_url}>
+                    {item.item_title}
+                  </a>
+                  <p className="muted">
+                    {item.source_label}
+                    {item.via_handle ? ` via ${item.via_handle}` : ""}
+                  </p>
+                </div>
+                <div>
+                  <p>{item.reason || "none"}</p>
+                  {item.note ? <p className="muted">{item.note}</p> : null}
+                </div>
+                <p className="muted">{new Date(item.created_at).toLocaleString()}</p>
+              </article>
+            ))}
           </div>
         ) : (
           <p className="muted">No feedback recorded yet.</p>

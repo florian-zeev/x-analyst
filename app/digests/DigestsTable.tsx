@@ -9,43 +9,41 @@ export function DigestsTable({ digests }: { digests: DigestRow[] }) {
   }
 
   return (
-    <div className="table-wrap">
-      <table className="digests-table">
-        <thead>
-          <tr>
-            <th>Brief</th>
-            <th>Date</th>
-            <th>Items</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {digests.map((digest) => (
-            <tr key={digest.id}>
-              <td>
-                <a className="table-title" href={`/digests/${digest.id}`}>
-                  {digest.subject}
-                </a>
-              </td>
-              <td>{new Date(digest.created_at).toLocaleString()}</td>
-              <td>{digest.item_count}</td>
-              <td>{digest.sent_at ? "Emailed" : "Stored"}</td>
-              <td>
-                <div className="table-actions">
-                  <a className="text-button" href={`/digests/${digest.id}`}>
-                    Open
-                  </a>
-                  <DeleteDigestButton
-                    digestId={digest.id}
-                    subject={digest.subject}
-                  />
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="digest-card-list">
+      <div className="digest-card digest-card-header" aria-hidden="true">
+        <span>Brief</span>
+        <span>Date</span>
+        <span>Items</span>
+        <span>Status</span>
+        <span>Actions</span>
+      </div>
+      {digests.map((digest) => (
+        <article className="digest-card" key={digest.id}>
+          <a className="table-title" href={`/digests/${digest.id}`}>
+            {digest.subject}
+          </a>
+          <dl>
+            <div>
+              <dt>Date</dt>
+              <dd>{new Date(digest.created_at).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>Items</dt>
+              <dd>{digest.item_count}</dd>
+            </div>
+            <div>
+              <dt>Status</dt>
+              <dd>{digest.sent_at ? "Emailed" : "Stored"}</dd>
+            </div>
+          </dl>
+          <div className="table-actions">
+            <a className="text-button" href={`/digests/${digest.id}`}>
+              Open
+            </a>
+            <DeleteDigestButton digestId={digest.id} subject={digest.subject} />
+          </div>
+        </article>
+      ))}
     </div>
   );
 }
