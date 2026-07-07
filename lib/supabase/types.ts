@@ -292,6 +292,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_access: {
+        Row: {
+          email: string;
+          status: string;
+          approved_at: string | null;
+          approved_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          email: string;
+          status?: string;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          status?: string;
+          approved_at?: string | null;
+          approved_by?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

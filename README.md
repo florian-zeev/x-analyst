@@ -1,10 +1,17 @@
 # X Analyst
 
+[Hosted app](https://x-analyst.com)
+
 A Vercel-ready Next.js app that turns a curated X list plus discovery searches
 into a daily brief for any topic described in your interest profile. It uses Supabase Auth for private access,
 Supabase Postgres for settings and briefs, Vercel AI SDK with direct OpenAI and
 Groq API keys for brief generation,
 Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
+
+X Analyst is source-available software. Personal evaluation and
+non-commercial self-hosting are allowed under the repository license.
+Commercial use, hosted resale, internal company deployment, or derivative SaaS
+offerings require a separate commercial license.
 
 ## Setup
 
@@ -16,9 +23,16 @@ Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 6. Use `GROQ_API_KEY` for lower-cost subagent calls. By default, scout,
    article-reader, and clustering subagents use `openai/gpt-oss-120b`.
 7. Use `RESEND_API_KEY` and `DIGEST_FROM_EMAIL` for email delivery.
-8. Set `ALLOWED_EMAILS` to a comma-separated allowlist for private access.
-   Non-allowlisted sign-in attempts are captured in the Supabase-backed
-   waitlist.
+8. Set `ADMIN_EMAILS` to a comma-separated list of operators who can view and
+   approve waitlist requests.
+9. Optionally set `ALLOWED_EMAILS` as a comma-separated bootstrap override for
+   private access. Normal user access is managed in Supabase through the
+   waitlist approval flow.
+
+When a non-approved email tries to sign in, X Analyst records it in
+`waitlist_requests`. An admin can approve or block the request from `/waitlist`.
+Approved users are stored in `user_access`, so adding users does not require an
+environment variable change or redeploy.
 
 ## Local Development
 
@@ -68,3 +82,15 @@ be judged against the reader's actual preferences.
 `CRON_SECRET` is also used as the private bearer token for the Next.js API to
 call the Eve HTTP channel. `APP_BASE_URL` is used as the default Eve host; set
 `EVE_AGENT_HOST` only if the agent is mounted somewhere else.
+
+## License
+
+This repository is source-available, not OSI open source. See `LICENSE.md` for
+permitted non-commercial use and `COMMERCIAL-LICENSE.md` for commercial-use
+terms.
+
+Commercial licensing requires a separate written agreement. For commercial
+inquiries, contact
+[Florian Wolf on LinkedIn](https://www.linkedin.com/in/meet-florian-wolf/).
+
+For security issues, see `SECURITY.md`.

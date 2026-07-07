@@ -100,12 +100,22 @@ create table if not exists public.waitlist_requests (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.user_access (
+  email text primary key,
+  status text not null default 'approved' check (status in ('approved', 'blocked')),
+  approved_at timestamptz,
+  approved_by uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 alter table public.analyst_profiles enable row level security;
 alter table public.digests enable row level security;
 alter table public.digest_items enable row level security;
 alter table public.article_feedback enable row level security;
 alter table public.collection_items enable row level security;
 alter table public.waitlist_requests enable row level security;
+alter table public.user_access enable row level security;
 
 drop policy if exists "Users can read their analyst profile"
   on public.analyst_profiles;
@@ -187,10 +197,6 @@ create policy "Users can delete their collection items"
 drop policy if exists "Allowed users can read waitlist requests"
   on public.waitlist_requests;
 
-create policy "Allowed users can read waitlist requests"
-  on public.waitlist_requests for select
-  using (auth.role() = 'authenticated');
-
 alter table public.analyst_profiles
   add column if not exists priority_handles text[] not null default '{}';
 
@@ -254,6 +260,9 @@ create index if not exists collection_items_user_created_idx
 
 create index if not exists waitlist_requests_status_created_idx
   on public.waitlist_requests (status, created_at desc);
+
+create index if not exists user_access_status_updated_idx
+  on public.user_access (status, updated_at desc);
 
 create or replace function public.topic_filter_tags(
   profile_user_id uuid,

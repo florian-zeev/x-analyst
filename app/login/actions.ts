@@ -2,13 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { isAllowedEmail } from "@/lib/authz";
+import { canAccessEmail } from "@/lib/access";
 import { recordWaitlistRequest } from "@/lib/waitlist";
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
 
-  if (!isAllowedEmail(email)) {
+  if (!(await canAccessEmail(email))) {
     await recordWaitlistRequest(email);
     redirect("/login?access=requested");
   }

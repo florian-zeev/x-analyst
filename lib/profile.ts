@@ -1,7 +1,7 @@
 import { cache } from "react";
+import { canAccessEmail } from "@/lib/access";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { isAllowedEmail } from "@/lib/authz";
 
 export type AnalystProfile = {
   userId: string;
@@ -27,7 +27,7 @@ export const getCurrentUserProfile = cache(async () => {
 
   const email = String(data.claims.email ?? "").toLowerCase();
 
-  if (!isAllowedEmail(email)) {
+  if (!(await canAccessEmail(email))) {
     return null;
   }
 

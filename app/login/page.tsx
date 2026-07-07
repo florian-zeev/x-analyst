@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { signIn } from "@/app/login/actions";
-import { isAllowedEmail } from "@/lib/authz";
+import { canAccessEmail } from "@/lib/access";
 import { hasSupabasePublicEnv } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,7 +35,7 @@ export default async function LoginPage({
 
   if (data?.claims) {
     const email = String(data.claims.email ?? "").toLowerCase();
-    if (isAllowedEmail(email)) {
+    if (await canAccessEmail(email)) {
       redirect("/dashboard");
     }
 

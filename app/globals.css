@@ -9,6 +9,7 @@
   --accent: #111111;
   --accent-ink: #ffffff;
   --warn: #8f3a10;
+  --success: #137333;
   --danger: #dc2626;
   --danger-hover: #b91c1c;
   --surface: #fafafa;
@@ -148,6 +149,22 @@ textarea {
 .nav a[aria-current="page"] {
   color: var(--ink);
   font-weight: 520;
+}
+
+.nav a[data-nav-key="waitlist"],
+.mobile-nav a[data-nav-key="waitlist"] {
+  border-top: 1px solid var(--line);
+  color: var(--warn);
+  font-size: 13px;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+
+.nav a[data-nav-key="waitlist"]:hover,
+.mobile-nav a[data-nav-key="waitlist"]:hover,
+.nav a[data-nav-key="waitlist"][aria-current="page"],
+.mobile-nav a[data-nav-key="waitlist"][aria-current="page"] {
+  color: var(--ink);
 }
 
 .main {
@@ -1459,9 +1476,11 @@ textarea {
 }
 
 .waitlist-row {
+  align-items: start;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 28px;
+  grid-template-columns: minmax(180px, 260px) 120px minmax(220px, 280px) auto;
+  justify-content: start;
 }
 
 .waitlist-row h2,
@@ -1470,15 +1489,39 @@ textarea {
 }
 
 .waitlist-row h2 {
-  font-size: 18px;
-  font-weight: 520;
+  font-size: 15px;
+  font-weight: 680;
   line-height: 1.3;
+  text-transform: capitalize;
 }
 
 .waitlist-row p {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.5;
+}
+
+.waitlist-status.approved {
+  color: var(--success);
+}
+
+.waitlist-status.blocked {
+  color: var(--danger);
+}
+
+.waitlist-status.pending {
+  color: var(--warn);
+}
+
+.waitlist-email {
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.waitlist-row form {
+  margin: 0;
 }
 
 .rejected-context {
@@ -1688,6 +1731,11 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .waitlist-row {
+    gap: 10px;
+    grid-template-columns: 1fr;
+  }
+
   .mobile-header {
     align-items: center;
     background: #ffffff;
@@ -1768,6 +1816,12 @@ textarea {
   .mobile-nav a:hover,
   .mobile-nav button:hover {
     background: #f1f1f1;
+  }
+
+  .mobile-nav a[data-nav-key="waitlist"] {
+    font-size: 13px;
+    margin-top: 8px;
+    padding-top: 15px;
   }
 
   .mobile-nav .nav-account {
