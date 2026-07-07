@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
+import { formatDate } from "@/lib/date-format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
@@ -215,7 +216,7 @@ export default async function TopicsPage({
                   ))}
                 </div>
                 <a className="text-button" href={`/digests/${item.digestId}`}>
-                  {new Date(item.createdAt).toLocaleDateString()} brief
+                  {formatDate(item.createdAt, profile.deliveryTimezone)} brief
                 </a>
               </article>
             ))}

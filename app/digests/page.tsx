@@ -50,7 +50,10 @@ export default async function DigestsPage({
 
       <section className="panel">
         <h2>All briefs</h2>
-        <DigestsTable digests={digests ?? []} />
+        <DigestsTable
+          digests={digests ?? []}
+          timeZone={profile.deliveryTimezone}
+        />
       </section>
     </AppShell>
   );

@@ -1,8 +1,8 @@
 import { defineAgent } from "eve";
-import { briefingModel } from "@/lib/ai-model";
+import { subagentModel } from "@/lib/ai-model";
 
 export default defineAgent({
   description:
     "Read linked articles and X-native long posts, extracting clean claims, evidence, provenance, and caveats.",
-  model: briefingModel()
+  model: subagentModel()
 });

@@ -4,6 +4,7 @@ import { BookmarkForm } from "@/app/digests/BookmarkForm";
 import { ItemFeedbackForm } from "@/app/digests/ItemFeedbackForm";
 import type { DailyBrief } from "@/lib/brief";
 import { parseStructuredBrief } from "@/lib/brief";
+import { formatDateTime } from "@/lib/date-format";
 import { renderMarkdown } from "@/lib/markdown";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
@@ -76,7 +77,9 @@ export default async function DigestPage({
     <AppShell active="digests">
         <div className="topbar">
           <div>
-            <p className="eyebrow">{new Date(digest.created_at).toDateString()}</p>
+            <p className="eyebrow">
+              {formatDateTime(digest.created_at, profile.deliveryTimezone)}
+            </p>
             <h1>{structured?.brief.title ?? digest.subject}</h1>
           </div>
         </div>

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
+import { formatDateTime } from "@/lib/date-format";
 import { getLearningContext } from "@/lib/learning";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
@@ -83,7 +84,9 @@ export default async function LearningPage() {
                   <p>{item.reason || "none"}</p>
                   {item.note ? <p className="muted">{item.note}</p> : null}
                 </div>
-                <p className="muted">{new Date(item.created_at).toLocaleString()}</p>
+                <p className="muted">
+                  {formatDateTime(item.created_at, profile.deliveryTimezone)}
+                </p>
               </article>
             ))}
           </div>

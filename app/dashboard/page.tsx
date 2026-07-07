@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
 import { generateBrief } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
+import { formatDateTime } from "@/lib/date-format";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
@@ -64,7 +65,8 @@ export default async function DashboardPage({
           <h2>Briefs</h2>
           {latestDigest ? (
             <p className="muted">
-              Latest: {new Date(latestDigest.created_at).toLocaleString()} ·{" "}
+              Latest:{" "}
+              {formatDateTime(latestDigest.created_at, profile.deliveryTimezone)} ·{" "}
               {latestDigest.item_count} items
             </p>
           ) : (

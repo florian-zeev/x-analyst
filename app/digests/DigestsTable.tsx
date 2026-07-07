@@ -1,9 +1,16 @@
 import { DeleteDigestButton } from "@/app/dashboard/DeleteDigestButton";
+import { formatDateTime } from "@/lib/date-format";
 import type { Database } from "@/lib/supabase/types";
 
 type DigestRow = Database["public"]["Tables"]["digests"]["Row"];
 
-export function DigestsTable({ digests }: { digests: DigestRow[] }) {
+export function DigestsTable({
+  digests,
+  timeZone
+}: {
+  digests: DigestRow[];
+  timeZone: string;
+}) {
   if (!digests.length) {
     return <p className="muted">No briefs generated yet.</p>;
   }
@@ -25,7 +32,7 @@ export function DigestsTable({ digests }: { digests: DigestRow[] }) {
           <dl>
             <div>
               <dt>Date</dt>
-              <dd>{new Date(digest.created_at).toLocaleString()}</dd>
+              <dd>{formatDateTime(digest.created_at, timeZone)}</dd>
             </div>
             <div>
               <dt>Items</dt>
