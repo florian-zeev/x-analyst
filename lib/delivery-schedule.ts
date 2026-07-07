@@ -17,9 +17,7 @@ export function getDeliveryDueState(
   const minutesTarget = minutesFromMidnight(profile.deliveryTime);
 
   return {
-    due:
-      minutesNow >= minutesTarget &&
-      minutesNow < minutesTarget + DELIVERY_POLL_INTERVAL_MINUTES,
+    due: minutesNow >= minutesTarget,
     localDate: local.date,
     localTime: local.time
   };

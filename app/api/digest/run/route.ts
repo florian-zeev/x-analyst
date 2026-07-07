@@ -3,29 +3,61 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { runDigestForProfile } from "@/lib/digest";
 import { getDeliveryDueState } from "@/lib/delivery-schedule";
 import { getCurrentUserProfile, toProfile } from "@/lib/profile";
+import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
 
 export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
+  const runId = crypto.randomUUID();
+
   try {
     const auth = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
     if (cronSecret && auth === `Bearer ${cronSecret}`) {
+      logBriefEvent("cron_run_started", {
+        runId,
+        path: request.nextUrl.pathname
+      });
+
       const admin = createAdminClient();
       const { data, error } = await admin.from("analyst_profiles").select("*");
 
       if (error) {
+        logBriefError("cron_profile_query_failed", error, { runId });
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      logBriefEvent("cron_profiles_loaded", {
+        runId,
+        profileCount: data?.length ?? 0
+      });
 
       const results = [];
       const skipped = [];
       for (const row of data ?? []) {
         const profile = toProfile(row);
         const dueState = getDeliveryDueState(profile);
+        const profileLog = {
+          runId,
+          userId: profile.userId,
+          email: maskEmail(profile.email),
+          localDate: dueState.localDate,
+          localTime: dueState.localTime,
+          deliveryTime: profile.deliveryTime,
+          timezone: profile.deliveryTimezone
+        };
+
+        logBriefEvent("cron_profile_due_checked", {
+          ...profileLog,
+          due: dueState.due
+        });
 
         if (!dueState.due) {
+          logBriefEvent("cron_profile_skipped", {
+            ...profileLog,
+            reason: "not_due"
+          });
           skipped.push({
             email: profile.email,
             reason: "not_due",
@@ -38,6 +70,10 @@ export async function GET(request: NextRequest) {
         }
 
         if (await hasDigestForLocalDate(profile.userId, dueState.localDate)) {
+          logBriefEvent("cron_profile_skipped", {
+            ...profileLog,
+            reason: "already_sent"
+          });
           skipped.push({
             email: profile.email,
             reason: "already_sent",
@@ -48,10 +84,32 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        results.push(
-          await runDigestForProfile(profile, { localDate: dueState.localDate })
-        );
+        try {
+          logBriefEvent("cron_profile_generation_started", profileLog);
+          const result = await runDigestForProfile(profile, {
+            localDate: dueState.localDate,
+            runId,
+            trigger: "schedule"
+          });
+          logBriefEvent("cron_profile_generation_completed", {
+            ...profileLog,
+            digestId: result.id,
+            itemCount: result.itemCount,
+            emailSent: Boolean(result.sentAt),
+            emailError: result.emailError
+          });
+          results.push(result);
+        } catch (error) {
+          logBriefError("cron_profile_generation_failed", error, profileLog);
+          throw error;
+        }
       }
+
+      logBriefEvent("cron_run_completed", {
+        runId,
+        resultCount: results.length,
+        skippedCount: skipped.length
+      });
 
       return NextResponse.json({ ok: true, results, skipped });
     }
@@ -61,11 +119,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await runDigestForProfile(profile);
+    logBriefEvent("manual_generation_started", {
+      runId,
+      userId: profile.userId,
+      email: maskEmail(profile.email)
+    });
+    const result = await runDigestForProfile(profile, {
+      runId,
+      trigger: "manual"
+    });
+    logBriefEvent("manual_generation_completed", {
+      runId,
+      userId: profile.userId,
+      email: maskEmail(profile.email),
+      digestId: result.id,
+      itemCount: result.itemCount,
+      emailSent: Boolean(result.sentAt),
+      emailError: result.emailError
+    });
     return NextResponse.json({ ok: true, result });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Brief generation failed.";
+    logBriefError("brief_run_failed", error, { runId });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

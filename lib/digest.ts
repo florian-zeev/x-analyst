@@ -17,6 +17,7 @@ import {
   canCreateCollectionSaveLinks,
   createCollectionSaveToken
 } from "@/lib/collection-token";
+import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
 
 export type DigestItem = {
   post: XPost;
@@ -26,6 +27,8 @@ export type DigestItem = {
 
 export type RunDigestOptions = {
   localDate?: string | null;
+  runId?: string;
+  trigger?: "manual" | "schedule";
 };
 
 type StoredDocumentRef = {
@@ -40,19 +43,56 @@ export async function runDigestForProfile(
   profile: AnalystProfile,
   options: RunDigestOptions = {}
 ) {
+  const runId = options.runId ?? crypto.randomUUID();
+  const logContext = {
+    runId,
+    trigger: options.trigger ?? "manual",
+    userId: profile.userId,
+    email: maskEmail(profile.email),
+    localDate: options.localDate ?? null
+  };
+
+  logBriefEvent("brief_generation_started", {
+    ...logContext,
+    hasXList: Boolean(profile.xListId),
+    discoveryQueryCount: profile.discoveryQueries.length,
+    priorityHandleCount: profile.priorityHandles.length
+  });
+
   const posts = await fetchXPosts({
     listId: profile.xListId,
     discoveryQueries: profile.discoveryQueries
   });
+  logBriefEvent("brief_posts_fetched", {
+    ...logContext,
+    postCount: posts.length
+  });
 
   const storedDocuments = await getStoredDocumentRefs(profile.userId);
   const rejectedUrls = await getRejectedUrls(profile.userId);
-  const items = filterRejectedItems(
-    await collectArticles(posts, storedDocuments),
-    rejectedUrls
-  );
-  const brief = await writeBriefWithEveFallback(profile, items);
+  logBriefEvent("brief_memory_loaded", {
+    ...logContext,
+    storedDocumentCount: storedDocuments.length,
+    rejectedUrlCount: rejectedUrls.size
+  });
+
+  const collectedItems = await collectArticles(posts, storedDocuments);
+  const items = filterRejectedItems(collectedItems, rejectedUrls);
+  logBriefEvent("brief_candidates_collected", {
+    ...logContext,
+    collectedItemCount: collectedItems.length,
+    candidateItemCount: items.length,
+    filteredRejectedCount: collectedItems.length - items.length
+  });
+
+  const brief = await writeBriefWithEveFallback(profile, items, logContext);
   const briefItemCount = countBriefItems(brief);
+  logBriefEvent("brief_written", {
+    ...logContext,
+    sectionCount: brief.sections.length,
+    itemCount: briefItemCount
+  });
+
   const body = encodeStructuredBrief(brief);
   const subject = `X Analyst Brief - ${new Date().toISOString().slice(0, 10)}`;
 
@@ -70,8 +110,15 @@ export async function runDigestForProfile(
     .single();
 
   if (error) {
+    logBriefError("brief_insert_failed", error, logContext);
     throw error;
   }
+
+  logBriefEvent("brief_inserted", {
+    ...logContext,
+    digestId: digest.id,
+    itemCount: briefItemCount
+  });
 
   await storeDigestItemsForBrief({
     digestId: digest.id,
@@ -81,12 +128,22 @@ export async function runDigestForProfile(
     brief,
     sourceItems: items
   });
+  logBriefEvent("brief_items_stored", {
+    ...logContext,
+    digestId: digest.id,
+    itemCount: briefItemCount
+  });
 
   const deliveryEmail = profile.digestEmail ?? profile.email;
   let sentAt: string | null = null;
   let emailError: string | null = null;
   if (deliveryEmail) {
     try {
+      logBriefEvent("brief_email_send_started", {
+        ...logContext,
+        digestId: digest.id,
+        deliveryEmail: maskEmail(deliveryEmail)
+      });
       const result = await sendDigestEmail({
         to: deliveryEmail,
         subject,
@@ -105,8 +162,20 @@ export async function runDigestForProfile(
           .update({ sent_at: sentAt })
           .eq("id", digest.id);
       }
+      logBriefEvent("brief_email_send_completed", {
+        ...logContext,
+        digestId: digest.id,
+        deliveryEmail: maskEmail(deliveryEmail),
+        sent: result.sent,
+        sentAt
+      });
     } catch (error) {
       emailError = error instanceof Error ? error.message : "Email failed.";
+      logBriefError("brief_email_send_failed", error, {
+        ...logContext,
+        digestId: digest.id,
+        deliveryEmail: maskEmail(deliveryEmail)
+      });
     }
   }
 
@@ -483,15 +552,33 @@ async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
 
 async function writeBriefWithEveFallback(
   profile: AnalystProfile,
-  items: DigestItem[]
+  items: DigestItem[],
+  logContext: Record<string, unknown>
 ) {
   try {
-    return await writeBriefWithEve(profile, items);
-  } catch (error) {
-    console.error("Eve brief workflow failed; falling back to direct writer.", {
-      error
+    logBriefEvent("brief_eve_workflow_started", {
+      ...logContext,
+      candidateItemCount: items.length
     });
-    return writeBrief(profile, items);
+    const brief = await writeBriefWithEve(profile, items);
+    logBriefEvent("brief_eve_workflow_completed", {
+      ...logContext,
+      sectionCount: brief.sections.length,
+      itemCount: countBriefItems(brief)
+    });
+    return brief;
+  } catch (error) {
+    logBriefError("brief_eve_workflow_failed_fallback_started", error, {
+      ...logContext,
+      candidateItemCount: items.length
+    });
+    const brief = await writeBrief(profile, items);
+    logBriefEvent("brief_direct_writer_completed_after_eve_fallback", {
+      ...logContext,
+      sectionCount: brief.sections.length,
+      itemCount: countBriefItems(brief)
+    });
+    return brief;
   }
 }
 
