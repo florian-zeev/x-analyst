@@ -87,7 +87,23 @@ function BookmarkToast({
 }: {
   state: CollectionSaveState;
 }) {
-  if (state.type === "idle" || !state.message) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (state.type === "idle" || !state.message) {
+      setIsVisible(false);
+      return;
+    }
+
+    setIsVisible(true);
+    const timeout = window.setTimeout(() => {
+      setIsVisible(false);
+    }, 3500);
+
+    return () => window.clearTimeout(timeout);
+  }, [state.message, state.type]);
+
+  if (state.type === "idle" || !state.message || !isVisible) {
     return null;
   }
 
