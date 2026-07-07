@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SignOutIcon } from "@/app/AppShell";
+import { GITHUB_REPO_URL, SignOutIcon } from "@/app/AppShell";
 import { signOut } from "@/app/dashboard/actions";
 import { hasSupabasePublicEnv } from "@/lib/env";
 import { getCurrentUserProfile } from "@/lib/profile";
@@ -90,6 +90,10 @@ export default async function Home() {
           (c) 2026{" "}
           <a href="https://www.fwolf.io" rel="noreferrer" target="_blank">
             Florian Wolf
+          </a>{" "}
+          ·{" "}
+          <a href={GITHUB_REPO_URL} rel="noreferrer" target="_blank">
+            GitHub
           </a>
         </p>
         {!hasSupabasePublicEnv() ? (

@@ -4,6 +4,8 @@ import { signOut } from "@/app/dashboard/actions";
 import { isAdminEmail } from "@/lib/authz";
 import { getCurrentUserProfile } from "@/lib/profile";
 
+export const GITHUB_REPO_URL = "https://github.com/florian-zeev/x-analyst";
+
 const navItems = [
   { href: "/dashboard", key: "dashboard", label: "Overview" },
   { href: "/profile", key: "profile", label: "Profile" },
@@ -89,6 +91,11 @@ function renderNav(
           </button>
         </form>
       </div>
+      <p className="sidebar-credit">
+        <a href={GITHUB_REPO_URL} rel="noreferrer" target="_blank">
+          GitHub
+        </a>
+      </p>
     </>
   );
 }
