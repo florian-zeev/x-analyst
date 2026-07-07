@@ -3,6 +3,7 @@ import { AppShell } from "@/app/AppShell";
 import { saveProfile } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { DeliveryScheduleFields } from "@/app/profile/DeliveryScheduleFields";
+import { ProfileFieldInfo } from "@/app/profile/ProfileFieldInfo";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage({
@@ -39,45 +40,126 @@ export default async function ProfilePage({
           deliveryTime={profile.deliveryTime}
           deliveryTimezone={profile.deliveryTimezone}
         />
-        <label>
-          X list ID
+        <div className="field">
+          <FieldHeader
+            htmlFor="xListId"
+            label="X list ID"
+            requirement="Optional"
+            infoTitle="X list ID"
+          >
+            <p>
+              Adds posts from a curated X list to each brief. This is useful
+              when you already have trusted sources you want X Analyst to scan.
+            </p>
+            <p>
+              It is not required. You can use discovery queries and the interest
+              profile without an X list.
+            </p>
+          </FieldHeader>
           <input
+            id="xListId"
             name="xListId"
             defaultValue={profile.xListId ?? ""}
             placeholder="Example: 1234567890"
           />
-        </label>
-        <label>
-          Discovery queries, one per line
+        </div>
+        <div className="field">
+          <FieldHeader
+            htmlFor="discoveryQueries"
+            label="Discovery queries"
+            requirement="Optional"
+            infoTitle="Discovery queries"
+          >
+            <p>
+              Adds search-based discovery beyond your X list. Put one query per
+              line, such as a product category, research theme, company name, or
+              phrase you want watched.
+            </p>
+            <p>
+              Optional on its own, but you should provide either an X list or
+              discovery queries so the agent has source material to inspect.
+            </p>
+          </FieldHeader>
           <textarea
+            id="discoveryQueries"
             name="discoveryQueries"
             defaultValue={profile.discoveryQueries.join("\n")}
+            placeholder="One query per line"
           />
-        </label>
-        <label>
-          Priority X handles, one per line
+        </div>
+        <div className="field">
+          <FieldHeader
+            htmlFor="priorityHandles"
+            label="Priority X handles"
+            requirement="Optional"
+            infoTitle="Priority X handles"
+          >
+            <p>
+              Gives extra attention to specific X accounts when their posts
+              appear in the source set. This is good for people or companies you
+              trust more than the average source.
+            </p>
+            <p>
+              Optional. It changes prioritization; it does not replace your X
+              list, discovery queries, or interest profile.
+            </p>
+          </FieldHeader>
           <textarea
+            id="priorityHandles"
             name="priorityHandles"
             defaultValue={profile.priorityHandles.map((handle) => `@${handle}`).join("\n")}
             placeholder="@sama&#10;@karpathy&#10;@rauchg"
           />
-        </label>
-        <label>
-          Delivery email
+        </div>
+        <div className="field">
+          <FieldHeader
+            htmlFor="digestEmail"
+            label="Delivery email"
+            requirement="Required"
+            infoTitle="Delivery email"
+          >
+            <p>
+              The address that receives the daily brief. By default this is your
+              login email, but you can send the brief somewhere else.
+            </p>
+            <p>
+              Required because X Analyst is designed around daily email
+              delivery.
+            </p>
+          </FieldHeader>
           <input
+            id="digestEmail"
             name="digestEmail"
             type="email"
             defaultValue={profile.digestEmail ?? profile.email}
+            required
           />
           <span className="field-help">
             Defaults to your login email: {profile.email}
           </span>
-        </label>
-        <label>
-          Markdown interest profile
+        </div>
+        <div className="field">
+          <FieldHeader
+            htmlFor="interestProfileMd"
+            label="Markdown interest profile"
+            requirement="Required"
+            infoTitle="Markdown interest profile"
+          >
+            <p>
+              This is the core instruction file for the brief. Describe what you
+              care about, what should be ignored, and what makes something
+              useful.
+            </p>
+            <p>
+              Required. Without it, the agent cannot distinguish useful signal
+              from generic news.
+            </p>
+          </FieldHeader>
           <textarea
+            id="interestProfileMd"
             name="interestProfileMd"
             defaultValue={profile.interestProfileMd}
+            required
             placeholder={`# Interest profile
 
 I care about:
@@ -93,7 +175,7 @@ I care less about:
 - shallow commentary without evidence`}
             style={{ minHeight: 420 }}
           />
-        </label>
+        </div>
         <div className="actions">
           <SubmitButton
             className="button"
@@ -108,4 +190,28 @@ I care less about:
 
 function noticeType(type: string | undefined) {
   return type === "success" || type === "warning" ? type : "error";
+}
+
+function FieldHeader({
+  htmlFor,
+  label,
+  requirement,
+  infoTitle,
+  children
+}: {
+  htmlFor: string;
+  label: string;
+  requirement: "Required" | "Optional";
+  infoTitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="field-label-row">
+      <label htmlFor={htmlFor}>{label}</label>
+      <span className={`field-requirement ${requirement.toLowerCase()}`}>
+        {requirement}
+      </span>
+      <ProfileFieldInfo title={infoTitle}>{children}</ProfileFieldInfo>
+    </div>
+  );
 }
