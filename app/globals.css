@@ -470,6 +470,27 @@ textarea {
   gap: 22px;
 }
 
+.form-row {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.delivery-settings {
+  background: var(--surface);
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.delivery-settings-title {
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 460;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
 .auth-form {
   max-width: 380px;
 }
@@ -764,6 +785,43 @@ textarea {
   text-align: left;
   text-transform: none;
   width: 100%;
+}
+
+.profile-select {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 12px 14px;
+  text-align: left;
+  text-transform: none;
+  width: 100%;
+}
+
+.profile-select::after {
+  color: var(--muted);
+  content: "v";
+  font-size: 10px;
+  margin-left: 12px;
+}
+
+.profile-select:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.profile-select-content {
+  max-height: min(420px, var(--radix-select-content-available-height));
+}
+
+.timezone-select-content {
+  min-width: min(520px, calc(100vw - 32px));
 }
 
 .reason-select::after {
@@ -1698,6 +1756,7 @@ textarea {
 
   .topbar,
   .grid,
+  .form-row,
   .landing-hero {
     grid-template-columns: 1fr;
     display: grid;

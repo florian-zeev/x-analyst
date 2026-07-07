@@ -1,4 +1,5 @@
 import { generateObject } from "ai";
+import { Client } from "eve/client";
 import {
   type DailyBrief,
   dailyBriefSchema,
@@ -23,15 +24,35 @@ export type DigestItem = {
   kind: "x" | "link";
 };
 
-export async function runDigestForProfile(profile: AnalystProfile) {
+export type RunDigestOptions = {
+  localDate?: string | null;
+};
+
+type StoredDocumentRef = {
+  url: string;
+  final_url: string;
+  title: string;
+  content_title: string;
+  content_description: string;
+};
+
+export async function runDigestForProfile(
+  profile: AnalystProfile,
+  options: RunDigestOptions = {}
+) {
   const posts = await fetchXPosts({
     listId: profile.xListId,
     discoveryQueries: profile.discoveryQueries
   });
 
+  const storedDocuments = await getStoredDocumentRefs(profile.userId);
   const rejectedUrls = await getRejectedUrls(profile.userId);
-  const items = filterRejectedItems(await collectArticles(posts), rejectedUrls);
-  const brief = await writeBrief(profile, items);
+  const items = filterRejectedItems(
+    await collectArticles(posts, storedDocuments),
+    rejectedUrls
+  );
+  const brief = await writeBriefWithEveFallback(profile, items);
+  const briefItemCount = countBriefItems(brief);
   const body = encodeStructuredBrief(brief);
   const subject = `X Analyst Brief - ${new Date().toISOString().slice(0, 10)}`;
 
@@ -42,7 +63,8 @@ export async function runDigestForProfile(profile: AnalystProfile) {
       user_id: profile.userId,
       subject,
       body_md: body,
-      item_count: items.length
+      item_count: briefItemCount,
+      digest_local_date: options.localDate ?? null
     })
     .select("*")
     .single();
@@ -92,7 +114,7 @@ export async function runDigestForProfile(profile: AnalystProfile) {
     id: digest.id,
     subject,
     body,
-    itemCount: items.length,
+    itemCount: briefItemCount,
     sentAt,
     emailError
   };
@@ -194,44 +216,87 @@ function collectionSaveUrl(userId: string, digestId: string, url: string) {
   )}`;
 }
 
-async function collectArticles(posts: XPost[]) {
-  const seen = new Set<string>();
+async function collectArticles(
+  posts: XPost[],
+  storedDocuments: StoredDocumentRef[]
+) {
+  const seen = createDocumentMemory(storedDocuments);
   const candidates: DigestItem[] = [];
 
   for (const post of posts.slice(0, 80)) {
     let addedLinkedItem = false;
 
     for (const url of post.urls.slice(0, 2)) {
-      if (seen.has(url) || isLowValueUrl(url)) {
+      if (isLowValueUrl(url) || seen.hasUrl(url)) {
         continue;
       }
-      seen.add(url);
+
       const article = await fetchArticle(url);
+      if (seen.hasArticle(article)) {
+        continue;
+      }
+
+      seen.addArticle(article);
       candidates.push({ post, article, kind: "link" });
       addedLinkedItem = true;
     }
 
     if (!addedLinkedItem && isSubstantialXPost(post)) {
       const url = xPostUrl(post);
-      if (!seen.has(url)) {
-        seen.add(url);
-        candidates.push({
-          post,
-          kind: "x",
-          article: {
-            url,
-            finalUrl: url,
-            title: `X post by ${formatAuthor(post)}`,
-            description: post.longText ?? post.text,
-            text: post.longText ?? post.text,
-            fetched: true
-          }
-        });
+      const article = {
+        url,
+        finalUrl: url,
+        title: `X post by ${formatAuthor(post)}`,
+        description: post.longText ?? post.text,
+        text: post.longText ?? post.text,
+        fetched: true
+      };
+
+      if (!seen.hasArticle(article)) {
+        seen.addArticle(article);
+        candidates.push({ post, kind: "x", article });
       }
     }
   }
 
   return candidates.slice(0, 50);
+}
+
+async function getStoredDocumentRefs(userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("digest_items")
+    .select("url,final_url,title,content_title,content_description")
+    .eq("user_id", userId)
+    .order("digest_created_at", { ascending: false })
+    .limit(5000);
+
+  if (error) {
+    if (isMissingDigestSnapshotColumns(error)) {
+      const { data: fallbackData, error: fallbackError } = await admin
+        .from("digest_items")
+        .select("url,title")
+        .eq("user_id", userId)
+        .order("digest_created_at", { ascending: false })
+        .limit(5000);
+
+      if (fallbackError) {
+        throw fallbackError;
+      }
+
+      return (fallbackData ?? []).map((item) => ({
+        url: item.url,
+        final_url: "",
+        title: item.title,
+        content_title: "",
+        content_description: ""
+      }));
+    }
+
+    throw error;
+  }
+
+  return data ?? [];
 }
 
 async function getRejectedUrls(userId: string) {
@@ -287,23 +352,7 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     };
   }
 
-  const sourcePack = items
-    .map((item, index) =>
-      [
-        `ITEM ${index + 1}`,
-        `Kind: ${item.kind === "x" ? "X-native post/article" : "External link"}`,
-        `X text: ${item.post.longText ?? item.post.text}`,
-        `Author: ${formatAuthor(item.post)}`,
-        `Priority author: ${isPriorityAuthor(item.post, profile.priorityHandles) ? "yes" : "no"}`,
-        `Source: ${item.post.source}`,
-        `URL: ${item.article.finalUrl}`,
-        `Host: ${hostLabel(item.article.finalUrl)}`,
-        `Title: ${item.article.title}`,
-        `Description: ${item.article.description}`,
-        `Article excerpt: ${item.article.text.slice(0, 1800)}`
-      ].join("\n")
-    )
-    .join("\n\n---\n\n");
+  const sourcePack = formatSourcePack(profile, items);
 
   const { object } = await generateObject({
     model: process.env.AI_MODEL ?? "openai/gpt-5.4-mini",
@@ -357,7 +406,121 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
     ].join("\n")
   });
 
-  return diversifyBrief(attachTweetProvenance(object, items));
+  return dedupeBriefItems(diversifyBrief(attachTweetProvenance(object, items)));
+}
+
+async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
+  const learning = await getLearningContext(profile.userId);
+
+  if (items.length === 0) {
+    return writeBrief(profile, items);
+  }
+
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    throw new Error("DIGEST_GENERATION_MODE=eve requires CRON_SECRET.");
+  }
+
+  const client = new Client({
+    host: resolveEveHost(),
+    auth: {
+      bearer: cronSecret
+    }
+  });
+  const session = client.session();
+  const response = await session.send<DailyBrief>({
+    outputSchema: dailyBriefSchema,
+    message: [
+      "Generate the production X Analyst daily brief using the staged subagent workflow.",
+      "",
+      "You must use the reader profile and learning context below as the briefing contract.",
+      "You must delegate substantive work to the specialist subagents. Use Workflow when useful to run candidate_scout, article_reader, cluster_analyst, and brief_editor in a staged flow.",
+      "Do not call run_x_analyst_digest. The API route already collected candidates and will store/email the result.",
+      "Return only structured data matching the requested DailyBrief schema.",
+      "",
+      "Reader context:",
+      JSON.stringify(
+        {
+          userId: profile.userId,
+          email: profile.email,
+          interestProfileMd: profile.interestProfileMd,
+          priorityHandles: profile.priorityHandles,
+          discoveryQueries: profile.discoveryQueries,
+          learning
+        },
+        null,
+        2
+      ),
+      "",
+      "Candidate items from X, including X-native long posts/articles and linked articles:",
+      formatSourcePack(profile, items),
+      "",
+      "Editorial requirements:",
+      "- Title must be exactly Daily Brief.",
+      "- Prefer fewer, higher-signal items.",
+      "- Avoid duplicates and near-duplicates.",
+      "- Use Priority Sources only for substantive items from configured priority handles.",
+      "- Do not assign numeric ratings.",
+      "- For X-native items, url must point to the X post itself.",
+      "- Set viaHandle and viaUrl to empty strings; the app attaches exact X provenance after generation."
+    ].join("\n")
+  });
+
+  const result = await response.result();
+
+  if (result.status !== "completed" || !result.data) {
+    throw new Error(
+      `Eve digest workflow failed with status ${result.status}: ${
+        result.message || "No structured result."
+      }`
+    );
+  }
+
+  return dedupeBriefItems(
+    diversifyBrief(attachTweetProvenance(dailyBriefSchema.parse(result.data), items))
+  );
+}
+
+async function writeBriefWithEveFallback(
+  profile: AnalystProfile,
+  items: DigestItem[]
+) {
+  try {
+    return await writeBriefWithEve(profile, items);
+  } catch (error) {
+    console.error("Eve digest workflow failed; falling back to direct writer.", {
+      error
+    });
+    return writeBrief(profile, items);
+  }
+}
+
+function formatSourcePack(profile: AnalystProfile, items: DigestItem[]) {
+  return items
+    .map((item, index) =>
+      [
+        `ITEM ${index + 1}`,
+        `Kind: ${item.kind === "x" ? "X-native post/article" : "External link"}`,
+        `X text: ${item.post.longText ?? item.post.text}`,
+        `Author: ${formatAuthor(item.post)}`,
+        `Priority author: ${isPriorityAuthor(item.post, profile.priorityHandles) ? "yes" : "no"}`,
+        `Source: ${item.post.source}`,
+        `URL: ${item.article.finalUrl}`,
+        `Host: ${hostLabel(item.article.finalUrl)}`,
+        `Title: ${item.article.title}`,
+        `Description: ${item.article.description}`,
+        `Article excerpt: ${item.article.text.slice(0, 1800)}`
+      ].join("\n")
+    )
+    .join("\n\n---\n\n");
+}
+
+function resolveEveHost() {
+  return (
+    process.env.EVE_AGENT_HOST ??
+    process.env.APP_BASE_URL ??
+    "http://localhost:3000"
+  );
 }
 
 function attachTweetProvenance(
@@ -419,6 +582,41 @@ function diversifyBrief(brief: DailyBrief) {
   };
 }
 
+function dedupeBriefItems(brief: DailyBrief) {
+  const seen = createDocumentMemory([]);
+
+  return {
+    ...brief,
+    sections: brief.sections.map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        const article = {
+          url: item.url,
+          finalUrl: item.url,
+          title: item.title,
+          description: item.sourceLabel,
+          text: `${item.title} ${item.why} ${item.takeaway}`,
+          fetched: true
+        };
+
+        if (seen.hasArticle(article)) {
+          return false;
+        }
+
+        seen.addArticle(article);
+        return true;
+      })
+    }))
+  };
+}
+
+function countBriefItems(brief: DailyBrief) {
+  return brief.sections.reduce(
+    (total, section) => total + section.items.length,
+    0
+  );
+}
+
 function findSourceItem(url: string, items: DigestItem[]) {
   return items.find(
     (item) =>
@@ -430,11 +628,216 @@ function findSourceItem(url: string, items: DigestItem[]) {
 function normalizeUrl(url: string) {
   try {
     const parsed = new URL(url);
+    parsed.hostname = parsed.hostname.toLowerCase().replace(/^www\./, "");
     parsed.hash = "";
+
+    if (parsed.hostname === "twitter.com") {
+      parsed.hostname = "x.com";
+    }
+
+    if (parsed.hostname === "x.com") {
+      const statusId = parsed.pathname.match(/\/status\/(\d+)/)?.[1];
+      if (statusId) {
+        parsed.pathname = `/i/web/status/${statusId}`;
+        parsed.search = "";
+        return parsed.toString().replace(/\/$/, "");
+      }
+    }
+
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (
+        key.startsWith("utm_") ||
+        [
+          "fbclid",
+          "gclid",
+          "igshid",
+          "mc_cid",
+          "mc_eid",
+          "ref",
+          "ref_src",
+          "source",
+          "src",
+          "si",
+          "feature"
+        ].includes(key)
+      ) {
+        parsed.searchParams.delete(key);
+      }
+    }
+
+    parsed.searchParams.sort();
     return parsed.toString().replace(/\/$/, "");
   } catch {
     return url;
   }
+}
+
+function createDocumentMemory(storedDocuments: StoredDocumentRef[]) {
+  const urls = new Set<string>();
+  const titleSignatures = new Set<string>();
+  const contentFingerprints = new Set<string>();
+  const titleTokenSets: string[][] = [];
+
+  for (const item of storedDocuments) {
+    addArticle({
+      url: item.url,
+      finalUrl: item.final_url || item.url,
+      title: item.content_title || item.title,
+      description: item.content_description,
+      text: "",
+      fetched: true
+    });
+  }
+
+  return {
+    hasUrl(url: string) {
+      return urls.has(normalizeUrl(url));
+    },
+    hasArticle(article: ArticleSnapshot) {
+      if (
+        urls.has(normalizeUrl(article.url)) ||
+        urls.has(normalizeUrl(article.finalUrl))
+      ) {
+        return true;
+      }
+
+      const signature = titleSignature(article.title);
+      if (signature && titleSignatures.has(signature)) {
+        return true;
+      }
+
+      const fingerprint = contentFingerprint(article);
+      if (fingerprint && contentFingerprints.has(fingerprint)) {
+        return true;
+      }
+
+      const tokens = significantTokens(article.title);
+      return isNearExistingTitle(tokens, titleTokenSets);
+    },
+    addArticle
+  };
+
+  function addArticle(article: ArticleSnapshot) {
+    urls.add(normalizeUrl(article.url));
+    urls.add(normalizeUrl(article.finalUrl));
+
+    const signature = titleSignature(article.title);
+    if (signature) {
+      titleSignatures.add(signature);
+    }
+
+    const fingerprint = contentFingerprint(article);
+    if (fingerprint) {
+      contentFingerprints.add(fingerprint);
+    }
+
+    const tokens = significantTokens(article.title);
+    if (tokens.length >= 5) {
+      titleTokenSets.push(tokens);
+    }
+  }
+}
+
+function titleSignature(title: string) {
+  const tokens = significantTokens(stripTitleSourceSuffix(title));
+  if (tokens.length < 4) {
+    return "";
+  }
+
+  return tokens.join(" ");
+}
+
+function contentFingerprint(article: ArticleSnapshot) {
+  const value = normalizeText(
+    [article.title, article.description, article.text.slice(0, 1400)].join(" ")
+  );
+
+  if (value.length < 160) {
+    return "";
+  }
+
+  return value.slice(0, 260);
+}
+
+function isNearExistingTitle(tokens: string[], existing: string[][]) {
+  if (tokens.length < 5) {
+    return false;
+  }
+
+  return existing.some((other) => jaccard(tokens, other) >= 0.78);
+}
+
+function jaccard(left: string[], right: string[]) {
+  const leftSet = new Set(left);
+  const rightSet = new Set(right);
+  let intersection = 0;
+
+  for (const token of leftSet) {
+    if (rightSet.has(token)) {
+      intersection += 1;
+    }
+  }
+
+  return intersection / (leftSet.size + rightSet.size - intersection);
+}
+
+function significantTokens(value: string) {
+  return normalizeText(stripTitleSourceSuffix(value))
+    .split(" ")
+    .filter(
+      (token) =>
+        token.length > 2 &&
+        ![
+          "about",
+          "after",
+          "again",
+          "against",
+          "with",
+          "without",
+          "from",
+          "into",
+          "over",
+          "under",
+          "this",
+          "that",
+          "these",
+          "those",
+          "have",
+          "has",
+          "had",
+          "will",
+          "would",
+          "could",
+          "should",
+          "their",
+          "there",
+          "what",
+          "when",
+          "where",
+          "your",
+          "here",
+          "they",
+          "them",
+          "than",
+          "then",
+          "only",
+          "also"
+        ].includes(token)
+    );
+}
+
+function stripTitleSourceSuffix(value: string) {
+  return value.replace(/\s+[-|–—]\s+.{1,40}$/u, "");
+}
+
+function normalizeText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/https?:\/\/\S+/g, " ")
+    .replace(/[@#][\w-]+/g, " ")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function isMissingRejectedColumn(error: { code?: string; message?: string }) {

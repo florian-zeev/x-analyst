@@ -8,6 +8,8 @@ create table if not exists public.analyst_profiles (
   discovery_queries text[] not null default '{}',
   priority_handles text[] not null default '{}',
   digest_email text,
+  delivery_timezone text not null default 'Europe/Berlin',
+  delivery_time text not null default '08:00',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -18,6 +20,7 @@ create table if not exists public.digests (
   subject text not null,
   body_md text not null,
   item_count integer not null default 0,
+  digest_local_date date,
   sent_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -191,6 +194,15 @@ create policy "Allowed users can read waitlist requests"
 alter table public.analyst_profiles
   add column if not exists priority_handles text[] not null default '{}';
 
+alter table public.analyst_profiles
+  add column if not exists delivery_timezone text not null default 'Europe/Berlin';
+
+alter table public.analyst_profiles
+  add column if not exists delivery_time text not null default '08:00';
+
+alter table public.digests
+  add column if not exists digest_local_date date;
+
 alter table public.digest_items
   add column if not exists rejected_at timestamptz;
 
@@ -209,6 +221,10 @@ alter table public.digest_items
 create index if not exists digests_user_created_idx
   on public.digests (user_id, created_at desc);
 
+create unique index if not exists digests_user_local_date_unique_idx
+  on public.digests (user_id, digest_local_date)
+  where digest_local_date is not null;
+
 create index if not exists digest_items_user_created_idx
   on public.digest_items (user_id, digest_created_at desc);
 
@@ -217,6 +233,12 @@ create index if not exists digest_items_tags_idx
 
 create index if not exists digest_items_user_rejected_idx
   on public.digest_items (user_id, rejected_at, digest_created_at desc);
+
+create index if not exists digest_items_user_url_idx
+  on public.digest_items (user_id, url);
+
+create index if not exists digest_items_user_final_url_idx
+  on public.digest_items (user_id, final_url);
 
 create unique index if not exists digest_items_digest_item_unique_idx
   on public.digest_items (digest_id, section_title, url, title);

@@ -18,6 +18,8 @@ export type Database = {
           discovery_queries: string[];
           priority_handles: string[];
           digest_email: string | null;
+          delivery_timezone: string;
+          delivery_time: string;
           created_at: string;
           updated_at: string;
         };
@@ -29,6 +31,8 @@ export type Database = {
           discovery_queries?: string[];
           priority_handles?: string[];
           digest_email?: string | null;
+          delivery_timezone?: string;
+          delivery_time?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -39,6 +43,8 @@ export type Database = {
           discovery_queries?: string[];
           priority_handles?: string[];
           digest_email?: string | null;
+          delivery_timezone?: string;
+          delivery_time?: string;
           updated_at?: string;
         };
         Relationships: [];
@@ -50,6 +56,7 @@ export type Database = {
           subject: string;
           body_md: string;
           item_count: number;
+          digest_local_date: string | null;
           sent_at: string | null;
           created_at: string;
         };
@@ -58,6 +65,7 @@ export type Database = {
           subject: string;
           body_md: string;
           item_count?: number;
+          digest_local_date?: string | null;
           sent_at?: string | null;
           created_at?: string;
         };
@@ -65,6 +73,7 @@ export type Database = {
           subject?: string;
           body_md?: string;
           item_count?: number;
+          digest_local_date?: string | null;
           sent_at?: string | null;
         };
         Relationships: [];

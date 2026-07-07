@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
 import { saveProfile } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
+import { DeliveryScheduleFields } from "@/app/profile/DeliveryScheduleFields";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage({
@@ -34,6 +35,10 @@ export default async function ProfilePage({
       ) : null}
 
       <form className="panel form" action={saveProfile}>
+        <DeliveryScheduleFields
+          deliveryTime={profile.deliveryTime}
+          deliveryTimezone={profile.deliveryTimezone}
+        />
         <label>
           X list ID
           <input

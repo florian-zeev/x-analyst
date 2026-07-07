@@ -11,6 +11,8 @@ export type AnalystProfile = {
   discoveryQueries: string[];
   priorityHandles: string[];
   digestEmail: string | null;
+  deliveryTimezone: string;
+  deliveryTime: string;
 };
 
 const defaultInterestProfile = "";
@@ -50,7 +52,9 @@ export const getCurrentUserProfile = cache(async () => {
         interest_profile_md: defaultInterestProfile,
         discovery_queries: [],
         priority_handles: [],
-        digest_email: email
+        digest_email: email,
+        delivery_timezone: defaultDeliveryTimezone(),
+        delivery_time: "08:00"
       })
       .select("*")
       .single();
@@ -73,6 +77,8 @@ export function toProfile(row: {
   discovery_queries: string[];
   priority_handles: string[];
   digest_email: string | null;
+  delivery_timezone?: string | null;
+  delivery_time?: string | null;
 }): AnalystProfile {
   return {
     userId: row.user_id,
@@ -81,6 +87,12 @@ export function toProfile(row: {
     xListId: row.x_list_id,
     discoveryQueries: row.discovery_queries,
     priorityHandles: row.priority_handles ?? [],
-    digestEmail: row.digest_email
+    digestEmail: row.digest_email,
+    deliveryTimezone: row.delivery_timezone || defaultDeliveryTimezone(),
+    deliveryTime: row.delivery_time || "08:00"
   };
+}
+
+function defaultDeliveryTimezone() {
+  return process.env.DEFAULT_DELIVERY_TIMEZONE || "Europe/Berlin";
 }

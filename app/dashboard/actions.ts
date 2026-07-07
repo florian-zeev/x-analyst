@@ -26,6 +26,25 @@ export async function saveProfile(formData: FormData) {
   ).trim();
   const xListId = String(formData.get("xListId") ?? "").trim() || null;
   const digestEmail = String(formData.get("digestEmail") ?? "").trim() || null;
+  const deliveryTimezone =
+    String(formData.get("deliveryTimezone") ?? "").trim() || "Europe/Berlin";
+  const deliveryTime =
+    String(formData.get("deliveryTime") ?? "").trim() || "08:00";
+
+  if (!isValidDeliveryTime(deliveryTime)) {
+    redirect(
+      "/profile?type=error&message=Delivery time must use HH:MM format."
+    );
+  }
+
+  if (!isValidTimeZone(deliveryTimezone)) {
+    redirect(
+      `/profile?type=error&message=${encodeURIComponent(
+        "Delivery timezone must be a valid IANA timezone, for example Europe/Berlin."
+      )}`
+    );
+  }
+
   const discoveryQueries = String(formData.get("discoveryQueries") ?? "")
     .split("\n")
     .map((query) => query.trim())
@@ -42,6 +61,8 @@ export async function saveProfile(formData: FormData) {
     discovery_queries: discoveryQueries,
     priority_handles: priorityHandles,
     digest_email: digestEmail,
+    delivery_timezone: deliveryTimezone,
+    delivery_time: deliveryTime,
     updated_at: new Date().toISOString()
   };
 
@@ -59,6 +80,8 @@ export async function saveProfile(formData: FormData) {
           x_list_id: xListId,
           discovery_queries: discoveryQueries,
           digest_email: digestEmail,
+          delivery_timezone: deliveryTimezone,
+          delivery_time: deliveryTime,
           updated_at: updatePayload.updated_at
         })
         .eq("user_id", profile.userId);
@@ -83,6 +106,19 @@ export async function saveProfile(formData: FormData) {
 
 function normalizeHandle(handle: string) {
   return handle.trim().replace(/^@/, "").toLowerCase();
+}
+
+function isValidDeliveryTime(value: string) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function isValidTimeZone(value: string) {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function signOut() {
