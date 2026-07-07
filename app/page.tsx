@@ -20,7 +20,7 @@ export default async function Home() {
         <nav className="home-nav">
           {isSignedIn ? (
             <>
-              <Link href="/digests">Briefs</Link>
+              <Link href="/briefs">Briefs</Link>
               <Link className="button landing-sign-in" href="/dashboard">
                 Dashboard
               </Link>

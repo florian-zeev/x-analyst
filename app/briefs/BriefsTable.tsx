@@ -4,7 +4,7 @@ import type { Database } from "@/lib/supabase/types";
 
 type DigestRow = Database["public"]["Tables"]["digests"]["Row"];
 
-export function DigestsTable({
+export function BriefsTable({
   digests,
   timeZone
 }: {
@@ -26,7 +26,7 @@ export function DigestsTable({
       </div>
       {digests.map((digest) => (
         <article className="digest-card" key={digest.id}>
-          <a className="table-title" href={`/digests/${digest.id}`}>
+          <a className="table-title" href={`/briefs/${digest.id}`}>
             {digest.subject}
           </a>
           <dl>
@@ -44,7 +44,7 @@ export function DigestsTable({
             </div>
           </dl>
           <div className="table-actions">
-            <a className="text-button" href={`/digests/${digest.id}`}>
+            <a className="text-button" href={`/briefs/${digest.id}`}>
               Open
             </a>
             <DeleteDigestButton digestId={digest.id} subject={digest.subject} />

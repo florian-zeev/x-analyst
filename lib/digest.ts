@@ -150,7 +150,7 @@ export async function runDigestForProfile(
   const deliveryEmail = profile.digestEmail ?? profile.email;
   let sentAt: string | null = null;
   let emailError: string | null = null;
-  if (deliveryEmail) {
+  if (deliveryEmail && briefItemCount > 0) {
     try {
       logBriefEvent("brief_email_send_started", {
         ...logContext,
@@ -190,6 +190,12 @@ export async function runDigestForProfile(
         deliveryEmail: maskEmail(deliveryEmail)
       });
     }
+  } else if (briefItemCount === 0) {
+    logBriefEvent("brief_email_skipped_empty", {
+      ...logContext,
+      digestId: digest.id,
+      deliveryEmail: maskEmail(deliveryEmail)
+    });
   }
 
   return {

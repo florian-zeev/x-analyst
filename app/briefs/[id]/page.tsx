@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
-import { BookmarkForm } from "@/app/digests/BookmarkForm";
-import { ItemFeedbackForm } from "@/app/digests/ItemFeedbackForm";
+import { BookmarkForm } from "@/app/briefs/BookmarkForm";
+import { ItemFeedbackForm } from "@/app/briefs/ItemFeedbackForm";
 import type { DailyBrief } from "@/lib/brief";
 import { parseStructuredBrief } from "@/lib/brief";
 import { formatDateTime } from "@/lib/date-format";
@@ -74,7 +74,7 @@ export default async function DigestPage({
   }
 
   return (
-    <AppShell active="digests">
+    <AppShell active="briefs">
         <div className="topbar">
           <div>
             <p className="eyebrow">

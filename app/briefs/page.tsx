@@ -2,11 +2,11 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
 import { generateBrief } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
-import { DigestsTable } from "@/app/digests/DigestsTable";
+import { BriefsTable } from "@/app/briefs/BriefsTable";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
 
-export default async function DigestsPage({
+export default async function BriefsPage({
   searchParams
 }: {
   searchParams: Promise<{ message?: string; type?: string }>;
@@ -27,7 +27,7 @@ export default async function DigestsPage({
     .limit(50);
 
   return (
-    <AppShell active="digests">
+    <AppShell active="briefs">
       <div className="topbar">
         <div>
           <p className="eyebrow">Briefs</p>
@@ -50,7 +50,7 @@ export default async function DigestsPage({
 
       <section className="panel">
         <h2>All briefs</h2>
-        <DigestsTable
+        <BriefsTable
           digests={digests ?? []}
           timeZone={profile.deliveryTimezone}
         />

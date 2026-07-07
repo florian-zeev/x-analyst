@@ -215,7 +215,7 @@ export default async function TopicsPage({
                     </a>
                   ))}
                 </div>
-                <a className="text-button" href={`/digests/${item.digestId}`}>
+                <a className="text-button" href={`/briefs/${item.digestId}`}>
                   {formatDate(item.createdAt, profile.deliveryTimezone)} brief
                 </a>
               </article>

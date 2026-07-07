@@ -72,7 +72,7 @@ export default async function DashboardPage({
           ) : (
             <p className="muted">No briefs generated yet.</p>
           )}
-          <a className="button ghost" href="/digests">
+          <a className="button ghost" href="/briefs">
             View briefs
           </a>
         </section>

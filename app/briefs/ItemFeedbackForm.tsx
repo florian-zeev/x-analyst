@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { saveArticleFeedback } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
-import { ReasonSelect } from "@/app/digests/ReasonSelect";
+import { ReasonSelect } from "@/app/briefs/ReasonSelect";
 
 type FeedbackDirection = "more" | "less";
 

@@ -6,7 +6,7 @@ import {
   type StoredDigestForEmail
 } from "@/lib/digest";
 import { getDeliveryDueState } from "@/lib/delivery-schedule";
-import { getCurrentUserProfile, toProfile } from "@/lib/profile";
+import { getCurrentUserProfile, toProfile, type AnalystProfile } from "@/lib/profile";
 import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
 
 export const maxDuration = 300;
@@ -73,6 +73,21 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        if (!hasConfiguredSources(profile)) {
+          logBriefEvent("cron_profile_skipped", {
+            ...profileLog,
+            reason: "no_sources_configured"
+          });
+          skipped.push({
+            email: profile.email,
+            reason: "no_sources_configured",
+            localDate: dueState.localDate,
+            deliveryTime: profile.deliveryTime,
+            timezone: profile.deliveryTimezone
+          });
+          continue;
+        }
+
         const existingDigest = await findDigestForLocalDate(
           profile.userId,
           dueState.localDate,
@@ -90,6 +105,24 @@ export async function GET(request: NextRequest) {
           skipped.push({
             email: profile.email,
             reason: "already_sent",
+            localDate: dueState.localDate,
+            digestId: existingDigest.id,
+            deliveryTime: profile.deliveryTime,
+            timezone: profile.deliveryTimezone
+          });
+          continue;
+        }
+
+        if (existingDigest?.item_count === 0) {
+          logBriefEvent("cron_profile_skipped", {
+            ...profileLog,
+            reason: "empty_existing_brief",
+            digestId: existingDigest.id,
+            digestCreatedAt: existingDigest.created_at
+          });
+          skipped.push({
+            email: profile.email,
+            reason: "empty_existing_brief",
             localDate: dueState.localDate,
             digestId: existingDigest.id,
             deliveryTime: profile.deliveryTime,
@@ -210,6 +243,10 @@ async function findDigestForLocalDate(
     created_at: string;
     item_count: number;
   }) | null;
+}
+
+function hasConfiguredSources(profile: AnalystProfile) {
+  return Boolean(profile.xListId) || profile.discoveryQueries.length > 0;
 }
 
 function isMissingDigestLocalDateColumn(error: {

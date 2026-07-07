@@ -143,18 +143,18 @@ export async function generateBrief() {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Brief generation failed.";
-    redirect(`/digests?type=error&message=${encodeURIComponent(message)}`);
+    redirect(`/briefs?type=error&message=${encodeURIComponent(message)}`);
   }
 
   if (emailError) {
     redirect(
-      `/digests/${digestId}?type=warning&message=${encodeURIComponent(
+      `/briefs/${digestId}?type=warning&message=${encodeURIComponent(
         `Brief generated, but email delivery failed: ${emailError}`
       )}`
     );
   }
 
-  redirect(`/digests/${digestId}`);
+  redirect(`/briefs/${digestId}`);
 }
 
 export async function deleteDigest(formData: FormData) {
@@ -166,7 +166,7 @@ export async function deleteDigest(formData: FormData) {
 
   const digestId = String(formData.get("digestId") ?? "");
   if (!digestId) {
-    redirect("/digests?type=error&message=Missing brief id.");
+    redirect("/briefs?type=error&message=Missing brief id.");
   }
 
   const admin = createAdminClient();
@@ -177,11 +177,11 @@ export async function deleteDigest(formData: FormData) {
     .eq("user_id", profile.userId);
 
   if (error) {
-    redirect(`/digests?type=error&message=${encodeURIComponent(error.message)}`);
+    redirect(`/briefs?type=error&message=${encodeURIComponent(error.message)}`);
   }
 
-  revalidatePath("/digests");
-  redirect("/digests");
+  revalidatePath("/briefs");
+  redirect("/briefs");
 }
 
 export async function saveArticleFeedback(formData: FormData) {
@@ -193,7 +193,7 @@ export async function saveArticleFeedback(formData: FormData) {
 
   const direction = String(formData.get("direction"));
   if (direction !== "more" && direction !== "less") {
-    redirect("/digests?type=error&message=Invalid feedback direction.");
+    redirect("/briefs?type=error&message=Invalid feedback direction.");
   }
 
   const digestId = String(formData.get("digestId") ?? "");
@@ -227,7 +227,7 @@ export async function saveArticleFeedback(formData: FormData) {
       error.code === "42P01" || error.code === "PGRST205"
         ? "Feedback table is missing. Run the article_feedback migration."
         : error.message;
-    redirect(`/digests/${digestId}?type=error&message=${encodeURIComponent(message)}`);
+    redirect(`/briefs/${digestId}?type=error&message=${encodeURIComponent(message)}`);
   }
 
   const rejectionUpdate =
@@ -242,7 +242,7 @@ export async function saveArticleFeedback(formData: FormData) {
 
   if (rejectionError && isMissingRejectedColumn(rejectionError)) {
     redirect(
-      `/digests/${digestId}?type=warning&message=${encodeURIComponent(
+      `/briefs/${digestId}?type=warning&message=${encodeURIComponent(
         "Feedback saved, but rejected articles need the latest Supabase schema. Run supabase/schema.sql so less-like-this can hide items."
       )}`
     );
@@ -250,17 +250,17 @@ export async function saveArticleFeedback(formData: FormData) {
 
   if (rejectionError && rejectionError.code !== "PGRST204") {
     redirect(
-      `/digests/${digestId}?type=error&message=${encodeURIComponent(
+      `/briefs/${digestId}?type=error&message=${encodeURIComponent(
         rejectionError.message
       )}`
     );
   }
 
-  revalidatePath(`/digests/${digestId}`);
+  revalidatePath(`/briefs/${digestId}`);
   revalidatePath("/topics");
   revalidatePath("/rejected");
   revalidatePath("/learning");
-  redirect(`/digests/${digestId}?type=success&message=Feedback saved.`);
+  redirect(`/briefs/${digestId}?type=success&message=Feedback saved.`);
 }
 
 export async function restoreRejectedArticle(formData: FormData) {
@@ -314,7 +314,7 @@ export async function restoreRejectedArticle(formData: FormData) {
 
   revalidatePath("/rejected");
   revalidatePath("/topics");
-  revalidatePath("/digests");
+  revalidatePath("/briefs");
   revalidatePath("/learning");
   redirect("/rejected?type=success&message=Article restored.");
 }
@@ -344,14 +344,14 @@ export async function saveCollectionItem(formData: FormData) {
   } catch (error) {
     const message = collectionErrorMessage(error);
     redirect(
-      `/digests/${digestId}?type=error&message=${encodeURIComponent(message)}`
+      `/briefs/${digestId}?type=error&message=${encodeURIComponent(message)}`
     );
   }
 
   revalidatePath("/collection");
-  revalidatePath(`/digests/${digestId}`);
+  revalidatePath(`/briefs/${digestId}`);
   redirect(
-    `/digests/${digestId}?type=success&message=${encodeURIComponent(
+    `/briefs/${digestId}?type=success&message=${encodeURIComponent(
       "Saved to collection."
     )}`
   );
@@ -396,7 +396,7 @@ export async function saveCollectionItemInline(
   }
 
   revalidatePath("/collection");
-  revalidatePath(`/digests/${digestId}`);
+  revalidatePath(`/briefs/${digestId}`);
   return {
     type: "success" as const,
     message: "Saved to collection."

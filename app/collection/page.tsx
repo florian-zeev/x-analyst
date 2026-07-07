@@ -93,7 +93,7 @@ export default async function CollectionPage({
                     <dt>Dossier</dt>
                     <dd>
                       {item.digest_id ? (
-                        <a href={`/digests/${item.digest_id}`}>
+                        <a href={`/briefs/${item.digest_id}`}>
                           {item.digest_subject}
                         </a>
                       ) : (

@@ -110,7 +110,7 @@ export default async function RejectedPage({
                   <div className="rejected-context">
                     <p>
                       Dossier{" "}
-                      <a href={`/digests/${item.digest_id}`}>
+                      <a href={`/briefs/${item.digest_id}`}>
                         {item.digest_subject}
                       </a>
                     </p>

@@ -20,8 +20,10 @@ require a separate commercial license.
 3. Copy `.env.example` to `.env.local` and fill in the values.
 4. Use an X API bearer token with list timeline and recent search access.
 5. Use `OPENAI_API_KEY` for direct OpenAI model calls through the Vercel AI SDK.
-6. Use `GROQ_API_KEY` for lower-cost subagent calls. By default, scout,
-   article-reader, and clustering subagents use `openai/gpt-oss-120b`.
+   By default, source-facing scout and article-reader subagents use
+   `gpt-5.4-nano`.
+6. Use `GROQ_API_KEY` for lower-cost judgment-only subagent calls. By default,
+   the clustering subagent uses `openai/gpt-oss-120b`.
 7. Use `RESEND_API_KEY` and `DIGEST_FROM_EMAIL` for email delivery.
 8. Set `ADMIN_EMAILS` to a comma-separated list of operators who can view and
    approve waitlist requests.
