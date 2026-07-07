@@ -1,7 +1,7 @@
 # Commercial License
 
-X Analyst is source-available for personal evaluation and non-commercial
-self-hosting. Commercial use requires a separate written license.
+X Analyst is source-available under the PolyForm Noncommercial License 1.0.0.
+Commercial use requires a separate written license from the copyright holder.
 
 Commercial use includes:
 
@@ -20,6 +20,7 @@ Commercial license terms are negotiated separately and may cover:
 - source access and modification rights;
 - security, compliance, and data-processing requirements.
 
-Commercial licensing requires a separate written agreement from the copyright
-holder. For commercial inquiries, contact
+The PolyForm Noncommercial License remains the default repository license unless
+a separate written commercial agreement says otherwise. For commercial
+inquiries, contact
 [Florian Wolf on LinkedIn](https://www.linkedin.com/in/meet-florian-wolf/).

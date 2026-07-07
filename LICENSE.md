@@ -1,64 +1,133 @@
-# X Analyst Source Available License
+# PolyForm Noncommercial License 1.0.0
 
-Copyright (c) 2026 Florian Wolf.
+<https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-This license governs use of the X Analyst software and associated
-documentation in this repository.
+Required Notice: Copyright 2026 Florian Wolf.
 
-## Permitted Use
+## Acceptance
 
-You may use, copy, modify, and self-host the software for:
+In order to get any license under these terms, you must agree
+to them as both strict obligations and conditions to all
+your licenses.
 
-- personal evaluation;
-- non-commercial research;
-- non-commercial internal testing;
-- submitting patches or pull requests to this repository.
+## Copyright License
 
-You may publish modifications or forks only if they preserve this license,
-retain copyright notices, and do not enable commercial use without a separate
-commercial license.
+The licensor grants you a copyright license for the
+software to do everything you might do with the software
+that would otherwise infringe the licensor's copyright
+in it for any permitted purpose. However, you may
+only distribute the software according to [Distribution
+License](#distribution-license) and make changes or new works
+based on the software according to [Changes and New Works
+License](#changes-and-new-works-license).
 
-## Commercial Use Requires a Separate License
+## Distribution License
 
-You may not use the software for commercial purposes without a separate written
-commercial license from the copyright holder.
+The licensor grants you an additional copyright license
+to distribute copies of the software. Your license
+to distribute covers distributing the software with
+changes and new works permitted by [Changes and New Works
+License](#changes-and-new-works-license).
 
-Commercial purposes include, without limitation:
+## Notices
 
-- using the software inside a company or other for-profit organization;
-- offering the software, a modified version, or a derivative service to third
-  parties;
-- using the software to provide paid consulting, hosted services, managed
-  services, analytics, research, or automation;
-- bundling or embedding the software in a commercial product;
-- using the software to support revenue-generating operations.
+You must ensure that anyone who gets a copy of any part of
+the software from you also gets a copy of these terms or the
+URL for them above, as well as copies of any plain-text lines
+beginning with `Required Notice:` that the licensor provided
+with the software. For example:
 
-## Restrictions
+> Required Notice: Copyright Yoyodyne, Inc. (http://example.com)
 
-You may not:
+## Changes and New Works License
 
-- remove or obscure copyright, license, or attribution notices;
-- use the X Analyst name, marks, branding, or domain names in a way that implies
-  endorsement;
-- sell, sublicense, rent, lease, or otherwise commercially exploit the software
-  without a commercial license;
-- use the software to violate applicable laws, third-party platform terms, or
-  third-party rights.
+The licensor grants you an additional copyright license to
+make changes and new works based on the software for any
+permitted purpose.
 
-## Contributions
+## Patent License
 
-Unless otherwise agreed in writing, any contribution you submit to this
-repository is licensed under this license and may also be used by the copyright
-holder under separate commercial terms.
+The licensor grants you a patent license for the software that
+covers patent claims the licensor can license, or becomes able
+to license, that you would infringe by using the software.
 
-## No Warranty
+## Noncommercial Purposes
 
-The software is provided "as is", without warranty of any kind, express or
-implied, including but not limited to warranties of merchantability, fitness for
-a particular purpose, and noninfringement. In no event shall the authors or
-copyright holders be liable for any claim, damages, or other liability arising
-from use of the software.
+Any noncommercial purpose is a permitted purpose.
 
-## Commercial Licensing
+## Personal Uses
 
-For commercial licensing, see `COMMERCIAL-LICENSE.md`.
+Personal use for research, experiment, and testing for
+the benefit of public knowledge, personal study, private
+entertainment, hobby projects, amateur pursuits, or religious
+observance, without any anticipated commercial application,
+is use for a permitted purpose.
+
+## Noncommercial Organizations
+
+Use by any charitable organization, educational institution,
+public research organization, public safety or health
+organization, environmental protection organization,
+or government institution is use for a permitted purpose
+regardless of the source of funding or obligations resulting
+from the funding.
+
+## Fair Use
+
+You may have "fair use" rights for the software under the
+law. These terms do not limit them.
+
+## No Other Rights
+
+These terms do not allow you to sublicense or transfer any of
+your licenses to anyone else, or prevent the licensor from
+granting licenses to anyone else. These terms do not imply
+any other licenses.
+
+## Patent Defense
+
+If you make any written claim that the software infringes or
+contributes to infringement of any patent, your patent license
+for the software granted under these terms ends immediately. If
+your company makes such a claim, your patent license ends
+immediately for work on behalf of your company.
+
+## Violations
+
+The first time you are notified in writing that you have
+violated any of these terms, or done anything with the software
+not covered by your licenses, your licenses can nonetheless
+continue if you come into full compliance with these terms,
+and take practical steps to correct past violations, within
+32 days of receiving notice. Otherwise, all your licenses
+end immediately.
+
+## No Liability
+
+***As far as the law allows, the software comes as is, without
+any warranty or condition, and the licensor will not be liable
+to you for any damages arising out of these terms or the use
+or nature of the software, under any kind of legal claim.***
+
+## Definitions
+
+The **licensor** is the individual or entity offering these
+terms, and the **software** is the software the licensor makes
+available under these terms.
+
+**You** refers to the individual or entity agreeing to these
+terms.
+
+**Your company** is any legal entity, sole proprietorship,
+or other kind of organization that you work for, plus all
+organizations that have control over, are under the control of,
+or are under common control with that organization. **Control**
+means ownership of substantially all the assets of an entity,
+or the power to direct its management and policies by vote,
+contract, or otherwise. Control can be direct or indirect.
+
+**Your licenses** are all the licenses granted to you for the
+software under these terms.
+
+**Use** means anything you do with the software requiring one
+of your licenses.

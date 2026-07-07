@@ -8,10 +8,10 @@ Supabase Postgres for settings and briefs, Vercel AI SDK with direct OpenAI and
 Groq API keys for brief generation,
 Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 
-X Analyst is source-available software. Personal evaluation and
-non-commercial self-hosting are allowed under the repository license.
-Commercial use, hosted resale, internal company deployment, or derivative SaaS
-offerings require a separate commercial license.
+X Analyst is source-available software under the PolyForm Noncommercial License
+1.0.0. Noncommercial use is allowed under the repository license. Commercial
+use, hosted resale, internal company deployment, or derivative SaaS offerings
+require a separate commercial license.
 
 ## Setup
 
@@ -85,9 +85,10 @@ call the Eve HTTP channel. `APP_BASE_URL` is used as the default Eve host; set
 
 ## License
 
-This repository is source-available, not OSI open source. See `LICENSE.md` for
-permitted non-commercial use and `COMMERCIAL-LICENSE.md` for commercial-use
-terms.
+This repository is source-available, not OSI open source. It is licensed under
+the PolyForm Noncommercial License 1.0.0 for noncommercial use. See
+`LICENSE.md` for the license text and `COMMERCIAL-LICENSE.md` for commercial
+licensing information.
 
 Commercial licensing requires a separate written agreement. For commercial
 inquiries, contact

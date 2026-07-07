@@ -11,5 +11,5 @@ Before opening a pull request:
 5. Run the narrowest meaningful validation command before submitting.
 
 By submitting a contribution, you agree that your contribution is licensed under
-the repository license and may also be used by the copyright holder under
-separate commercial terms.
+the PolyForm Noncommercial License 1.0.0 and may also be used by the copyright
+holder under separate commercial terms.
