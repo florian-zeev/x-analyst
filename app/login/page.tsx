@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { signIn } from "@/app/login/actions";
@@ -8,14 +9,16 @@ import { createClient } from "@/lib/supabase/server";
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams: Promise<{ message?: string }>;
+  searchParams: Promise<{ access?: string; message?: string }>;
 }) {
   if (!hasSupabasePublicEnv()) {
     return (
       <main className="shell">
         <aside className="sidebar">
-          <h1 className="brand">X Analyst</h1>
-          <p className="muted">Magic-link authentication via Supabase.</p>
+          <Link className="brand" href="/">
+            X Analyst
+          </Link>
+          <p className="muted">Private access for curated daily briefs.</p>
         </aside>
         <section className="main">
           <p className="notice">
@@ -44,28 +47,50 @@ export default async function LoginPage({
   return (
     <main className="shell">
       <aside className="sidebar">
-        <h1 className="brand">X Analyst</h1>
-        <p className="muted">Magic-link authentication via Supabase.</p>
+        <Link className="brand" href="/">
+          X Analyst
+        </Link>
+        <p className="muted">Private access for curated daily briefs.</p>
       </aside>
       <section className="main">
-        <div className="topbar">
-          <div>
-            <p className="eyebrow">Access</p>
-            <h1>Sign in</h1>
+        {params.access === "requested" ? (
+          <div className="access-confirmation">
+            <p className="eyebrow">Access request</p>
+            <h1>You’re on the waitlist.</h1>
+            <p>
+              Thanks for your interest in X Analyst. Access is currently
+              limited, and your request has been recorded.
+            </p>
+            <p>
+              If a spot becomes available, Florian will follow up with next
+              steps.
+            </p>
+            <a className="text-button" href="/login">
+              Use a different email
+            </a>
           </div>
-        </div>
-        <form className="panel form auth-form" action={signIn}>
-          <label>
-            Email
-            <input name="email" type="email" required autoComplete="email" />
-          </label>
-          <SubmitButton
-            className="button"
-            idleLabel="Send magic link"
-            pendingLabel="Sending..."
-          />
-          {params.message ? <p className="muted">{params.message}</p> : null}
-        </form>
+        ) : (
+          <>
+            <div className="topbar">
+              <div>
+                <p className="eyebrow">Access</p>
+                <h1>Sign in</h1>
+              </div>
+            </div>
+            <form className="panel form auth-form" action={signIn}>
+              <label>
+                Email
+                <input name="email" type="email" required autoComplete="email" />
+              </label>
+              <SubmitButton
+                className="button"
+                idleLabel="Send sign-in link"
+                pendingLabel="Sending..."
+              />
+              {params.message ? <p className="muted">{params.message}</p> : null}
+            </form>
+          </>
+        )}
       </section>
     </main>
   );

@@ -2,11 +2,16 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { assertAllowedEmail } from "@/lib/authz";
+import { isAllowedEmail } from "@/lib/authz";
+import { recordWaitlistRequest } from "@/lib/waitlist";
 
 export async function signIn(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  assertAllowedEmail(email);
+
+  if (!isAllowedEmail(email)) {
+    await recordWaitlistRequest(email);
+    redirect("/login?access=requested");
+  }
 
   const supabase = await createClient();
   const origin = process.env.APP_BASE_URL ?? "http://localhost:3000";

@@ -13,6 +13,8 @@ Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 4. Use an X API bearer token with list timeline and recent search access.
 5. Use `RESEND_API_KEY` and `DIGEST_FROM_EMAIL` for email delivery.
 6. Set `ALLOWED_EMAILS` to a comma-separated allowlist for private access.
+   Non-allowlisted sign-in attempts are captured in the Supabase-backed
+   waitlist.
 
 ## Local Development
 

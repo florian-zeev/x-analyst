@@ -10,6 +10,7 @@ const navItems = [
   { href: "/topics", key: "topics", label: "Topics" },
   { href: "/collection", key: "collection", label: "Collection" },
   { href: "/learning", key: "learning", label: "Learning" },
+  { href: "/waitlist", key: "waitlist", label: "Waitlist" },
   { href: "/rejected", key: "rejected", label: "Rejected" }
 ] as const;
 
@@ -23,6 +24,7 @@ export async function AppShell({
     | "digests"
     | "topics"
     | "collection"
+    | "waitlist"
     | "rejected"
     | "learning";
   children: ReactNode;

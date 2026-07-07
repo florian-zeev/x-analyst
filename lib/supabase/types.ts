@@ -257,6 +257,32 @@ export type Database = {
         };
         Relationships: [];
       };
+      waitlist_requests: {
+        Row: {
+          email: string;
+          status: string;
+          source: string;
+          request_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          email: string;
+          status?: string;
+          source?: string;
+          request_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          email?: string;
+          status?: string;
+          source?: string;
+          request_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

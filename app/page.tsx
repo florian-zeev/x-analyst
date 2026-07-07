@@ -22,7 +22,7 @@ export default async function Home() {
             <>
               <Link href="/digests">Digests</Link>
               <Link className="button landing-sign-in" href="/dashboard">
-                Open dashboard
+                Dashboard
               </Link>
               <div className="home-account">
                 <span title={profile?.email}>{profile?.email}</span>
@@ -54,6 +54,9 @@ export default async function Home() {
 
       <section className="home-detail">
         <article>
+          <div className="home-card-icon" aria-hidden="true">
+            <SignalIcon />
+          </div>
           <h2>Your signal</h2>
           <p>
             Tell X Analyst what matters. It uses that profile to decide what
@@ -61,6 +64,9 @@ export default async function Home() {
           </p>
         </article>
         <article>
+          <div className="home-card-icon" aria-hidden="true">
+            <FeedbackIcon />
+          </div>
           <h2>Your feedback</h2>
           <p>
             Mark items as more or less useful, and future briefs adapt to your
@@ -68,6 +74,9 @@ export default async function Home() {
           </p>
         </article>
         <article>
+          <div className="home-card-icon" aria-hidden="true">
+            <MorningIcon />
+          </div>
           <h2>Your morning</h2>
           <p>
             Receive a short daily brief by email, with every digest saved for
@@ -92,5 +101,36 @@ export default async function Home() {
         ) : null}
       </footer>
     </main>
+  );
+}
+
+function SignalIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24">
+      <path d="M4 7h10" />
+      <path d="M4 12h16" />
+      <path d="M4 17h7" />
+      <circle cx="17" cy="17" r="3" />
+    </svg>
+  );
+}
+
+function FeedbackIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24">
+      <path d="M5 5h14v10H9l-4 4V5z" />
+      <path d="M9 10h6" />
+    </svg>
+  );
+}
+
+function MorningIcon() {
+  return (
+    <svg fill="none" viewBox="0 0 24 24">
+      <path d="M12 4v3" />
+      <path d="M5 14a7 7 0 0 1 14 0" />
+      <path d="M3 18h18" />
+      <path d="M7 21h10" />
+    </svg>
   );
 }
