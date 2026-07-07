@@ -21,6 +21,7 @@ create table if not exists public.digests (
   body_md text not null,
   item_count integer not null default 0,
   digest_local_date date,
+  digest_delivery_time text,
   sent_at timestamptz,
   created_at timestamptz not null default now()
 );
@@ -209,6 +210,9 @@ alter table public.analyst_profiles
 alter table public.digests
   add column if not exists digest_local_date date;
 
+alter table public.digests
+  add column if not exists digest_delivery_time text;
+
 alter table public.digest_items
   add column if not exists rejected_at timestamptz;
 
@@ -227,9 +231,11 @@ alter table public.digest_items
 create index if not exists digests_user_created_idx
   on public.digests (user_id, created_at desc);
 
-create unique index if not exists digests_user_local_date_unique_idx
-  on public.digests (user_id, digest_local_date)
-  where digest_local_date is not null;
+drop index if exists public.digests_user_local_date_unique_idx;
+
+create unique index if not exists digests_user_local_date_delivery_time_unique_idx
+  on public.digests (user_id, digest_local_date, digest_delivery_time)
+  where digest_local_date is not null and digest_delivery_time is not null;
 
 create index if not exists digest_items_user_created_idx
   on public.digest_items (user_id, digest_created_at desc);

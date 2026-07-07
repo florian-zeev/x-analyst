@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { runDigestForProfile } from "@/lib/digest";
+import {
+  runDigestForProfile,
+  sendStoredDigestEmail,
+  type StoredDigestForEmail
+} from "@/lib/digest";
 import { getDeliveryDueState } from "@/lib/delivery-schedule";
 import { getCurrentUserProfile, toProfile } from "@/lib/profile";
 import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
@@ -69,18 +73,45 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        if (await hasDigestForLocalDate(profile.userId, dueState.localDate)) {
+        const existingDigest = await findDigestForLocalDate(
+          profile.userId,
+          dueState.localDate,
+          dueState.deliveryTime
+        );
+        if (existingDigest?.sent_at) {
           logBriefEvent("cron_profile_skipped", {
             ...profileLog,
-            reason: "already_sent"
+            reason: "already_sent",
+            digestId: existingDigest.id,
+            digestCreatedAt: existingDigest.created_at,
+            sentAt: existingDigest.sent_at,
+            itemCount: existingDigest.item_count
           });
           skipped.push({
             email: profile.email,
             reason: "already_sent",
             localDate: dueState.localDate,
+            digestId: existingDigest.id,
             deliveryTime: profile.deliveryTime,
             timezone: profile.deliveryTimezone
           });
+          continue;
+        }
+
+        if (existingDigest) {
+          logBriefEvent("cron_profile_existing_unsent_digest_found", {
+            ...profileLog,
+            digestId: existingDigest.id,
+            digestCreatedAt: existingDigest.created_at,
+            itemCount: existingDigest.item_count
+          });
+          const result = await sendStoredDigestEmail(profile, existingDigest, {
+            localDate: dueState.localDate,
+            deliveryTime: dueState.deliveryTime,
+            runId,
+            trigger: "schedule"
+          });
+          results.push({ ...result, itemCount: existingDigest.item_count });
           continue;
         }
 
@@ -88,6 +119,7 @@ export async function GET(request: NextRequest) {
           logBriefEvent("cron_profile_generation_started", profileLog);
           const result = await runDigestForProfile(profile, {
             localDate: dueState.localDate,
+            deliveryTime: dueState.deliveryTime,
             runId,
             trigger: "schedule"
           });
@@ -150,24 +182,34 @@ export async function POST(request: NextRequest) {
   return GET(request);
 }
 
-async function hasDigestForLocalDate(userId: string, localDate: string) {
+async function findDigestForLocalDate(
+  userId: string,
+  localDate: string,
+  deliveryTime: string
+) {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("digests")
-    .select("id")
+    .select("id,subject,body_md,sent_at,created_at,item_count,digest_delivery_time")
     .eq("user_id", userId)
     .eq("digest_local_date", localDate)
-    .limit(1);
+    .eq("digest_delivery_time", deliveryTime)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   if (error) {
-    if (isMissingDigestLocalDateColumn(error)) {
-      return false;
+    if (isMissingDigestScheduleColumn(error)) {
+      return null;
     }
 
     throw error;
   }
 
-  return Boolean(data?.length);
+  return data as (StoredDigestForEmail & {
+    created_at: string;
+    item_count: number;
+  }) | null;
 }
 
 function isMissingDigestLocalDateColumn(error: {
@@ -179,5 +221,15 @@ function isMissingDigestLocalDateColumn(error: {
     error.code === "PGRST204" ||
     error.message?.includes("digest_local_date") ||
     error.message?.includes("schema cache")
+  );
+}
+
+function isMissingDigestScheduleColumn(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    isMissingDigestLocalDateColumn(error) ||
+    error.message?.includes("digest_delivery_time")
   );
 }

@@ -6,6 +6,7 @@ export type DeliveryDueState = {
   due: boolean;
   localDate: string;
   localTime: string;
+  deliveryTime: string;
 };
 
 export function getDeliveryDueState(
@@ -19,7 +20,8 @@ export function getDeliveryDueState(
   return {
     due: minutesNow >= minutesTarget,
     localDate: local.date,
-    localTime: local.time
+    localTime: local.time,
+    deliveryTime: profile.deliveryTime
   };
 }
 

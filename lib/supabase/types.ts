@@ -57,6 +57,7 @@ export type Database = {
           body_md: string;
           item_count: number;
           digest_local_date: string | null;
+          digest_delivery_time: string | null;
           sent_at: string | null;
           created_at: string;
         };
@@ -66,6 +67,7 @@ export type Database = {
           body_md: string;
           item_count?: number;
           digest_local_date?: string | null;
+          digest_delivery_time?: string | null;
           sent_at?: string | null;
           created_at?: string;
         };
@@ -74,6 +76,7 @@ export type Database = {
           body_md?: string;
           item_count?: number;
           digest_local_date?: string | null;
+          digest_delivery_time?: string | null;
           sent_at?: string | null;
         };
         Relationships: [];

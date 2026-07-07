@@ -4,6 +4,7 @@ import {
   type DailyBrief,
   dailyBriefSchema,
   encodeStructuredBrief,
+  parseStructuredBrief,
   structuredBriefToHtml,
   structuredBriefToMarkdown
 } from "@/lib/brief";
@@ -28,8 +29,17 @@ export type DigestItem = {
 
 export type RunDigestOptions = {
   localDate?: string | null;
+  deliveryTime?: string | null;
   runId?: string;
   trigger?: "manual" | "schedule";
+};
+
+export type StoredDigestForEmail = {
+  id: string;
+  subject: string;
+  body_md: string;
+  sent_at: string | null;
+  digest_delivery_time?: string | null;
 };
 
 type StoredDocumentRef = {
@@ -50,7 +60,8 @@ export async function runDigestForProfile(
     trigger: options.trigger ?? "manual",
     userId: profile.userId,
     email: maskEmail(profile.email),
-    localDate: options.localDate ?? null
+    localDate: options.localDate ?? null,
+    deliveryTime: options.deliveryTime ?? null
   };
 
   logBriefEvent("brief_generation_started", {
@@ -105,7 +116,8 @@ export async function runDigestForProfile(
       subject,
       body_md: body,
       item_count: briefItemCount,
-      digest_local_date: options.localDate ?? null
+      digest_local_date: options.localDate ?? null,
+      digest_delivery_time: options.deliveryTime ?? null
     })
     .select("*")
     .single();
@@ -188,6 +200,87 @@ export async function runDigestForProfile(
     sentAt,
     emailError
   };
+}
+
+export async function sendStoredDigestEmail(
+  profile: AnalystProfile,
+  digest: StoredDigestForEmail,
+  options: RunDigestOptions = {}
+) {
+  const deliveryEmail = profile.digestEmail ?? profile.email;
+  const runId = options.runId ?? crypto.randomUUID();
+  const logContext = {
+    runId,
+    trigger: options.trigger ?? "schedule",
+    userId: profile.userId,
+    email: maskEmail(profile.email),
+    digestId: digest.id,
+    deliveryEmail: maskEmail(deliveryEmail),
+    localDate: options.localDate ?? null,
+    deliveryTime: options.deliveryTime ?? digest.digest_delivery_time ?? null
+  };
+
+  if (!deliveryEmail) {
+    return {
+      id: digest.id,
+      subject: digest.subject,
+      sentAt: null,
+      emailError: "No delivery email configured."
+    };
+  }
+
+  const structured = parseStructuredBrief(digest.body_md);
+  if (!structured) {
+    return {
+      id: digest.id,
+      subject: digest.subject,
+      sentAt: null,
+      emailError: "Stored brief is not structured; cannot retry styled email."
+    };
+  }
+
+  try {
+    logBriefEvent("stored_brief_email_retry_started", logContext);
+    const result = await sendDigestEmail({
+      to: deliveryEmail,
+      subject: digest.subject,
+      markdown: structuredBriefToMarkdown(structured.brief),
+      html: structuredBriefToHtml(structured.brief, {
+        saveUrlForItem: canCreateCollectionSaveLinks()
+          ? (item) => collectionSaveUrl(profile.userId, digest.id, item.url)
+          : undefined
+      })
+    });
+
+    let sentAt: string | null = null;
+    if (result.sent) {
+      sentAt = new Date().toISOString();
+      const admin = createAdminClient();
+      await admin.from("digests").update({ sent_at: sentAt }).eq("id", digest.id);
+    }
+
+    logBriefEvent("stored_brief_email_retry_completed", {
+      ...logContext,
+      sent: result.sent,
+      sentAt
+    });
+
+    return {
+      id: digest.id,
+      subject: digest.subject,
+      sentAt,
+      emailError: null
+    };
+  } catch (error) {
+    const emailError = error instanceof Error ? error.message : "Email failed.";
+    logBriefError("stored_brief_email_retry_failed", error, logContext);
+    return {
+      id: digest.id,
+      subject: digest.subject,
+      sentAt: null,
+      emailError
+    };
+  }
 }
 
 export async function storeDigestItemsForBrief({
