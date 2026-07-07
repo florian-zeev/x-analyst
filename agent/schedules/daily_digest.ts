@@ -28,8 +28,8 @@ async function runDailyDigest() {
   const body = await response.text();
 
   if (!response.ok) {
-    throw new Error(`Scheduled digest failed: ${response.status} ${body}`);
+    throw new Error(`Scheduled brief failed: ${response.status} ${body}`);
   }
 
-  console.log(`Scheduled digest completed: ${body}`);
+  console.log(`Scheduled brief completed: ${body}`);
 }

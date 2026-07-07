@@ -2,7 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 
 export default defineTool({
-  description: "Run the X Analyst daily digest endpoint.",
+  description: "Run the X Analyst daily brief endpoint.",
   inputSchema: z.object({
     reason: z.string().default("scheduled daily brief")
   }),
@@ -26,7 +26,7 @@ export default defineTool({
     const body = await response.text();
 
     if (!response.ok) {
-      throw new Error(`Digest run failed: ${response.status} ${body}`);
+      throw new Error(`Brief run failed: ${response.status} ${body}`);
     }
 
     return body;

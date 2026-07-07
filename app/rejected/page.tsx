@@ -67,7 +67,7 @@ export default async function RejectedPage({
           <p className="eyebrow">Rejected</p>
           <h1>{params.digest ? "Rejected from this brief" : "Rejected articles"}</h1>
           <p className="muted">
-            Articles marked less useful are hidden from digests and topics, then
+            Articles marked less useful are hidden from briefs and topics, then
             kept here so you can review or restore them.
           </p>
           {params.digest ? (

@@ -133,7 +133,7 @@ export default async function TopicsPage({
           <h1>Topic explorer</h1>
           <p className="muted">
             Combine labels to review brief items by theme across generated
-            digests.
+            briefs.
           </p>
         </div>
       </div>

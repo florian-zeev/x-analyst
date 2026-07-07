@@ -470,7 +470,7 @@ async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
 
   if (result.status !== "completed" || !result.data) {
     throw new Error(
-      `Eve digest workflow failed with status ${result.status}: ${
+      `Eve brief workflow failed with status ${result.status}: ${
         result.message || "No structured result."
       }`
     );
@@ -488,7 +488,7 @@ async function writeBriefWithEveFallback(
   try {
     return await writeBriefWithEve(profile, items);
   } catch (error) {
-    console.error("Eve digest workflow failed; falling back to direct writer.", {
+    console.error("Eve brief workflow failed; falling back to direct writer.", {
       error
     });
     return writeBrief(profile, items);

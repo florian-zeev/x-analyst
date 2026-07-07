@@ -30,7 +30,7 @@ export default async function DigestsPage({
     <AppShell active="digests">
       <div className="topbar">
         <div>
-          <p className="eyebrow">Digests</p>
+          <p className="eyebrow">Briefs</p>
           <h1>Brief archive</h1>
           <p className="muted">
             Browse, open, and delete generated daily briefs.

@@ -2,7 +2,7 @@
 
 A Vercel-ready Next.js app that turns a curated X list plus discovery searches
 into a daily brief for any topic described in your interest profile. It uses Supabase Auth for private access,
-Supabase Postgres for settings and digests, Vercel AI SDK for brief generation,
+Supabase Postgres for settings and briefs, Vercel AI SDK for brief generation,
 Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 
 ## Setup
@@ -34,11 +34,11 @@ requires for running eligible profiles.
 Each profile stores an IANA timezone and preferred local delivery time. The Eve
 schedule runs every 15 minutes; the API checks which profiles are due in their
 own timezone and uses a database idempotency key to avoid sending more than one
-scheduled digest per local day.
+scheduled brief per local day.
 
 ## Eve
 
-The `agent/` directory is an Eve agent that can wrap the same digest endpoint:
+The `agent/` directory is an Eve agent that can wrap the same brief endpoint:
 
 ```bash
 pnpm eve:dev

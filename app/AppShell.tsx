@@ -6,7 +6,7 @@ import { getCurrentUserProfile } from "@/lib/profile";
 const navItems = [
   { href: "/dashboard", key: "dashboard", label: "Overview" },
   { href: "/profile", key: "profile", label: "Profile" },
-  { href: "/digests", key: "digests", label: "Digests" },
+  { href: "/digests", key: "digests", label: "Briefs" },
   { href: "/topics", key: "topics", label: "Topics" },
   { href: "/collection", key: "collection", label: "Collection" },
   { href: "/learning", key: "learning", label: "Learning" },

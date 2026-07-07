@@ -34,7 +34,7 @@ export default async function DashboardPage({
           <h1>Daily briefing setup</h1>
           <p className="muted">
             Signed in as {profile.email}. Configure sources in Profile, review
-            generated briefs in Digests, or run a new brief now.
+            generated briefs in Briefs, or run a new brief now.
           </p>
         </div>
         <form action={generateBrief}>
@@ -61,7 +61,7 @@ export default async function DashboardPage({
           </a>
         </section>
         <section className="panel">
-          <h2>Digests</h2>
+          <h2>Briefs</h2>
           {latestDigest ? (
             <p className="muted">
               Latest: {new Date(latestDigest.created_at).toLocaleString()} ·{" "}
@@ -71,7 +71,7 @@ export default async function DashboardPage({
             <p className="muted">No briefs generated yet.</p>
           )}
           <a className="button ghost" href="/digests">
-            View digests
+            View briefs
           </a>
         </section>
       </div>

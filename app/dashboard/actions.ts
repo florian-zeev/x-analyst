@@ -166,7 +166,7 @@ export async function deleteDigest(formData: FormData) {
 
   const digestId = String(formData.get("digestId") ?? "");
   if (!digestId) {
-    redirect("/digests?type=error&message=Missing digest id.");
+    redirect("/digests?type=error&message=Missing brief id.");
   }
 
   const admin = createAdminClient();

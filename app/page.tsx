@@ -20,7 +20,7 @@ export default async function Home() {
         <nav className="home-nav">
           {isSignedIn ? (
             <>
-              <Link href="/digests">Digests</Link>
+              <Link href="/digests">Briefs</Link>
               <Link className="button landing-sign-in" href="/dashboard">
                 Dashboard
               </Link>
@@ -79,7 +79,7 @@ export default async function Home() {
           </div>
           <h2>Your morning</h2>
           <p>
-            Receive a short daily brief by email, with every digest saved for
+            Receive a short daily brief by email, with every brief saved for
             review later.
           </p>
         </article>
