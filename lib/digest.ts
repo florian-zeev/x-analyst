@@ -18,6 +18,7 @@ import {
   createCollectionSaveToken
 } from "@/lib/collection-token";
 import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
+import { briefingModel } from "@/lib/ai-model";
 
 export type DigestItem = {
   post: XPost;
@@ -424,7 +425,7 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
   const sourcePack = formatSourcePack(profile, items);
 
   const { object } = await generateObject({
-    model: process.env.AI_MODEL ?? "openai/gpt-5.4-mini",
+    model: briefingModel(),
     schema: dailyBriefSchema,
     system: [
       "You are a senior analyst writing a daily brief for the domain described by the reader's interest profile.",

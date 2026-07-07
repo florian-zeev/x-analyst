@@ -2,7 +2,7 @@
 
 A Vercel-ready Next.js app that turns a curated X list plus discovery searches
 into a daily brief for any topic described in your interest profile. It uses Supabase Auth for private access,
-Supabase Postgres for settings and briefs, Vercel AI SDK for brief generation,
+Supabase Postgres for settings and briefs, Vercel AI SDK with a direct OpenAI API key for brief generation,
 Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 
 ## Setup
@@ -11,8 +11,9 @@ Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 2. Configure Supabase email OTP auth and add your deployed URL to Auth redirect URLs.
 3. Copy `.env.example` to `.env.local` and fill in the values.
 4. Use an X API bearer token with list timeline and recent search access.
-5. Use `RESEND_API_KEY` and `DIGEST_FROM_EMAIL` for email delivery.
-6. Set `ALLOWED_EMAILS` to a comma-separated allowlist for private access.
+5. Use `OPENAI_API_KEY` for direct OpenAI model calls through the Vercel AI SDK.
+6. Use `RESEND_API_KEY` and `DIGEST_FROM_EMAIL` for email delivery.
+7. Set `ALLOWED_EMAILS` to a comma-separated allowlist for private access.
    Non-allowlisted sign-in attempts are captured in the Supabase-backed
    waitlist.
 
