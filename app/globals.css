@@ -1020,8 +1020,9 @@ textarea {
 
 .brief-item.is-saved {
   background: #f7f7f7;
-  margin: -18px -20px;
-  padding: 18px 20px;
+  border-radius: 6px;
+  margin: -30px -24px -32px;
+  padding: 30px 24px 32px;
 }
 
 .brief-item:first-child {
