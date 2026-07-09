@@ -1132,6 +1132,24 @@ textarea {
   color: var(--ink);
 }
 
+.icon-button {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+}
+
+.icon-button:hover {
+  background: #ededed;
+  color: var(--ink);
+}
+
 .bookmark-root {
   display: block;
 }
@@ -1408,11 +1426,69 @@ textarea {
 }
 
 .collection-note {
-  background: var(--surface);
+  background: #f7f7f7;
   color: var(--ink);
   font-size: 15px;
   line-height: 1.55;
-  padding: 14px;
+  padding: 16px;
+}
+
+.collection-note-header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 9px;
+}
+
+.collection-note-header p,
+.collection-note-editor label span {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.collection-note .muted {
+  color: var(--muted);
+}
+
+.collection-note-editor {
+  display: grid;
+  gap: 12px;
+}
+
+.collection-note-editor label {
+  display: grid;
+  gap: 9px;
+}
+
+.collection-note-editor textarea {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--ink);
+  font: inherit;
+  line-height: 1.5;
+  min-height: 92px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.collection-note-editor textarea:focus {
+  border-color: var(--ink);
+  outline: 0;
+}
+
+.collection-note-actions {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+}
+
+.collection-note-status {
+  color: var(--danger);
+  font-size: 13px;
+  margin: 0;
 }
 
 .collection-context {

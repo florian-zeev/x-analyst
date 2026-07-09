@@ -16,6 +16,10 @@ export type CollectionSaveState = {
 
 export type CollectionRemoveState = CollectionSaveState;
 
+export type CollectionNoteState = CollectionSaveState & {
+  note: string;
+};
+
 export async function saveProfile(formData: FormData) {
   const profile = await getCurrentUserProfile();
 
@@ -486,6 +490,58 @@ export async function removeCollectionItem(formData: FormData) {
       "Removed from collection."
     )}`
   );
+}
+
+export async function updateCollectionItemNote(
+  _previousState: CollectionNoteState,
+  formData: FormData
+): Promise<CollectionNoteState> {
+  const profile = await getCurrentUserProfile();
+  const note = String(formData.get("note") ?? "").trim();
+
+  if (!profile) {
+    return {
+      type: "error" as const,
+      message: "Sign in again to edit this note.",
+      note
+    };
+  }
+
+  const collectionItemId = String(formData.get("collectionItemId") ?? "");
+
+  if (!collectionItemId) {
+    return {
+      type: "error" as const,
+      message: "Missing collection item.",
+      note
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("collection_items")
+    .update({
+      note,
+      updated_at: new Date().toISOString()
+    })
+    .eq("user_id", profile.userId)
+    .eq("id", collectionItemId);
+
+  if (error) {
+    return {
+      type: "error" as const,
+      message: collectionErrorMessage(error),
+      note
+    };
+  }
+
+  revalidatePath("/collection");
+  revalidatePath("/learning");
+  return {
+    type: "success" as const,
+    message: "Note saved.",
+    note
+  };
 }
 
 export async function saveCollectionItemFromEmail(formData: FormData) {

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
+import { CollectionNoteEditor } from "@/app/collection/CollectionNoteEditor";
 import { RemoveCollectionItemButton } from "@/app/collection/RemoveCollectionItemButton";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
@@ -83,7 +84,7 @@ export default async function CollectionPage({
                   <h2>{item.title}</h2>
                   <RemoveCollectionItemButton itemId={item.id} title={item.title} />
                 </div>
-                {item.note ? <p className="collection-note">{item.note}</p> : null}
+                <CollectionNoteEditor itemId={item.id} note={item.note} />
                 <dl className="collection-context">
                   <div>
                     <dt>Why</dt>
