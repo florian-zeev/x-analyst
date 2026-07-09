@@ -32,6 +32,9 @@ importers:
       eve:
         specifier: 0.12.0
         version: 0.12.0(ai@7.0.0-beta.178(zod@4.4.3))(next@16.2.9(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
+      lucide-react:
+        specifier: ^1.23.0
+        version: 1.23.0(react@19.2.6)
       next:
         specifier: 16.2.9
         version: 16.2.9(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -901,6 +904,11 @@ packages:
 
   json-schema@0.4.0:
     resolution: {integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==}
+
+  lucide-react@1.23.0:
+    resolution: {integrity: sha512-38BpJcD0JhFosxHApP/BYsBetLpQFRoTRzEzstM/XCc3jsAG7wqaY1lgVwxiUe3xqYE+lNxo2PkCmYwXWrwwIw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   nanoid@3.3.15:
     resolution: {integrity: sha512-y7Wygv/7mEOvxTuEQDB8StXdMRBWf1kR/tlhAzBRUFkB2jfcLOAxO/SHmOO2zgz1pVgK29/kyupn059/bCHdjA==}
@@ -1848,6 +1856,10 @@ snapshots:
   iceberg-js@0.8.1: {}
 
   json-schema@0.4.0: {}
+
+  lucide-react@1.23.0(react@19.2.6):
+    dependencies:
+      react: 19.2.6
 
   nanoid@3.3.15: {}
 

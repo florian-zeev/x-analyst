@@ -1436,8 +1436,13 @@ textarea {
 .collection-note-header {
   align-items: center;
   display: flex;
-  justify-content: space-between;
   margin-bottom: 9px;
+}
+
+.collection-note-label {
+  align-items: center;
+  display: inline-flex;
+  gap: 5px;
 }
 
 .collection-note-header p,
