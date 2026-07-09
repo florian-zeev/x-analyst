@@ -534,7 +534,10 @@ label {
 }
 
 .starter-template-dialog {
-  max-width: 760px;
+  max-height: min(860px, calc(100dvh - 48px));
+  max-width: none;
+  overflow-y: auto;
+  width: min(920px, calc(100vw - 48px));
 }
 
 .starter-template-copy {
@@ -565,10 +568,8 @@ label {
 }
 
 .starter-template-field-header {
-  align-items: start;
   display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
 }
 
 .starter-template-field span {
@@ -590,7 +591,7 @@ label {
 }
 
 .starter-template-field pre {
-  background: var(--background);
+  background: var(--bg);
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -602,11 +603,16 @@ label {
   white-space: pre-wrap;
 }
 
+.starter-template-preview-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 .starter-template-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .starter-template-actions .secondary-button {
@@ -614,12 +620,14 @@ label {
 }
 
 @media (max-width: 720px) {
-  .starter-template-field-header {
-    grid-template-columns: 1fr;
+  .starter-template-dialog {
+    max-height: calc(100dvh - 32px);
+    padding: 24px;
+    width: calc(100vw - 24px);
   }
 
-  .starter-template-actions {
-    justify-content: flex-start;
+  .starter-template-field pre {
+    max-height: 220px;
   }
 }
 

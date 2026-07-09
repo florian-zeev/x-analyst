@@ -160,28 +160,27 @@ function StarterFieldPreview({
   return (
     <section className="starter-template-field">
       <div className="starter-template-field-header">
-        <div>
-          <span>{label}</span>
-          {children}
-        </div>
-        <div className="starter-template-actions">
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setFieldValue(fieldId, preview, "empty")}
-          >
-            Fill if empty
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => setFieldValue(fieldId, preview, "replace")}
-          >
-            Start with this
-          </button>
-        </div>
+        <span>{label}</span>
+        {children}
       </div>
+      <div className="starter-template-preview-label">Preview</div>
       <pre>{preview}</pre>
+      <div className="starter-template-actions" aria-label={`${label} starter actions`}>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => setFieldValue(fieldId, preview, "empty")}
+        >
+          Use if empty
+        </button>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => setFieldValue(fieldId, preview, "replace")}
+        >
+          Replace this field
+        </button>
+      </div>
     </section>
   );
 }
