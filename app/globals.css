@@ -1025,10 +1025,6 @@ textarea {
   padding: 30px 24px 32px;
 }
 
-.brief-item:first-child {
-  padding-top: 0;
-}
-
 .item-body {
   display: grid;
   gap: 18px;
