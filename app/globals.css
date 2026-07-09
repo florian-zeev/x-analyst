@@ -1021,7 +1021,7 @@ textarea {
 .brief-item.is-saved {
   background: #f7f7f7;
   border-radius: 6px;
-  margin: -30px -24px -32px;
+  margin: 0 -24px;
   padding: 30px 24px 32px;
 }
 
@@ -1958,6 +1958,11 @@ textarea {
 
   .brief-items {
     gap: 60px;
+  }
+
+  .brief-item.is-saved {
+    margin: 0 -12px;
+    padding: 24px 12px 28px;
   }
 
   .item-body h3 {
