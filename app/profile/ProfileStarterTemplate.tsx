@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -10,6 +11,12 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+
+type StarterFieldId =
+  | "xListId"
+  | "discoveryQueries"
+  | "priorityHandles"
+  | "interestProfileMd";
 
 const starterListId = "1744772823090925584";
 const starterListUrl = `https://x.com/i/lists/${starterListId}`;
@@ -78,68 +85,118 @@ I use X Analyst to find high-signal developments from X and the open web before 
 
 Be skeptical, concise, and concrete. Prefer fewer, better items. Explain why each item matters. Avoid numeric scores and fake objectivity.`;
 
-export function ProfileStarterTemplate() {
+const starterTemplates: Record<
+  StarterFieldId,
+  {
+    label: string;
+    preview: string;
+    help?: React.ReactNode;
+  }
+> = {
+  xListId: {
+    label: "X list",
+    preview: starterListId,
+    help: (
+      <p>
+        Florian's list:{" "}
+        <a href={starterListUrl} rel="noreferrer" target="_blank">
+          {starterListUrl}
+        </a>
+      </p>
+    )
+  },
+  discoveryQueries: {
+    label: "Discovery queries",
+    preview: starterDiscoveryQueries
+  },
+  priorityHandles: {
+    label: "Priority handles",
+    preview: starterPriorityHandles
+  },
+  interestProfileMd: {
+    label: "Markdown interest profile",
+    preview: starterInterestProfile
+  }
+};
+
+export function ProfileStarterTemplateButton({
+  fieldId
+}: {
+  fieldId: StarterFieldId;
+}) {
+  const [hasCurrentValue, setHasCurrentValue] = useState(false);
+  const [insertedBecauseEmpty, setInsertedBecauseEmpty] = useState(false);
+  const template = starterTemplates[fieldId];
+
+  function handleOpen() {
+    const fieldHasValue = hasFieldValue(fieldId);
+    setHasCurrentValue(fieldHasValue);
+    setInsertedBecauseEmpty(!fieldHasValue);
+
+    if (!fieldHasValue) {
+      setFieldValue(fieldId, template.preview, "replace");
+    }
+  }
+
+  function handleReplace() {
+    setFieldValue(fieldId, template.preview, "replace");
+    setHasCurrentValue(true);
+    setInsertedBecauseEmpty(true);
+  }
+
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <button className="secondary-button" type="button">
-          Show starter profile
+        <button
+          className="secondary-button field-template-button"
+          type="button"
+          onClick={handleOpen}
+        >
+          Show template
         </button>
       </DialogTrigger>
       <DialogContent className="starter-template-dialog">
         <DialogHeader>
-          <DialogTitle>Starter profile</DialogTitle>
+          <DialogTitle>{template.label} template</DialogTitle>
           <DialogDescription asChild>
             <div className="starter-template-copy">
-              <p>
-                A cold-start pack for AI and software intelligence. It includes
-                Florian's X list, discovery queries, priority handles, and a
-                Markdown interest profile.
-              </p>
-              <p>
-                Starter list:{" "}
-                <a href={starterListUrl} rel="noreferrer" target="_blank">
-                  {starterListUrl}
-                </a>
-              </p>
+              {insertedBecauseEmpty ? (
+                <p>
+                  The field was empty, so this template has been added. Review
+                  it below, then edit the field if you want to tune it.
+                </p>
+              ) : (
+                <p>
+                  This field already has values. Review the template below, then
+                  replace your current values only if you want to.
+                </p>
+              )}
             </div>
           </DialogDescription>
         </DialogHeader>
-        <div className="starter-template-fields">
-          <StarterFieldPreview
-            fieldId="xListId"
-            label="X list"
-            preview={starterListId}
-          >
-            <p>
-              Florian's list:{" "}
-              <a href={starterListUrl} rel="noreferrer" target="_blank">
-                {starterListUrl}
-              </a>
-            </p>
-          </StarterFieldPreview>
-          <StarterFieldPreview
-            fieldId="discoveryQueries"
-            label="Discovery queries"
-            preview={starterDiscoveryQueries}
-          />
-          <StarterFieldPreview
-            fieldId="priorityHandles"
-            label="Priority handles"
-            preview={starterPriorityHandles}
-          />
-          <StarterFieldPreview
-            fieldId="interestProfileMd"
-            label="Markdown interest profile"
-            preview={starterInterestProfile}
-          />
-        </div>
+        <StarterFieldPreview
+          label={template.label}
+          preview={template.preview}
+        >
+          {template.help}
+        </StarterFieldPreview>
         <DialogFooter>
           <DialogClose asChild>
             <button className="shadcn-button shadcn-button-outline" type="button">
-              Done
+              {insertedBecauseEmpty ? "Done" : "Cancel"}
             </button>
           </DialogClose>
+          {hasCurrentValue && !insertedBecauseEmpty ? (
+            <DialogClose asChild>
+              <button
+                className="shadcn-button"
+                type="button"
+                onClick={handleReplace}
+              >
+                Replace current values
+              </button>
+            </DialogClose>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -147,12 +204,10 @@ export function ProfileStarterTemplate() {
 }
 
 function StarterFieldPreview({
-  fieldId,
   label,
   preview,
   children
 }: {
-  fieldId: "xListId" | "discoveryQueries" | "priorityHandles" | "interestProfileMd";
   label: string;
   preview: string;
   children?: React.ReactNode;
@@ -165,28 +220,27 @@ function StarterFieldPreview({
       </div>
       <div className="starter-template-preview-label">Preview</div>
       <pre>{preview}</pre>
-      <div className="starter-template-actions" aria-label={`${label} starter actions`}>
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={() => setFieldValue(fieldId, preview, "empty")}
-        >
-          Use if empty
-        </button>
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={() => setFieldValue(fieldId, preview, "replace")}
-        >
-          Replace this field
-        </button>
-      </div>
     </section>
   );
 }
 
+function hasFieldValue(id: StarterFieldId) {
+  const field = document.getElementById(id);
+
+  if (
+    !(
+      field instanceof HTMLInputElement ||
+      field instanceof HTMLTextAreaElement
+    )
+  ) {
+    return false;
+  }
+
+  return Boolean(field.value.trim());
+}
+
 function setFieldValue(
-  id: "xListId" | "discoveryQueries" | "priorityHandles" | "interestProfileMd",
+  id: StarterFieldId,
   value: string,
   mode: "empty" | "replace"
 ) {

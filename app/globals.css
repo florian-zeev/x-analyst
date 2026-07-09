@@ -533,11 +533,11 @@ label {
   margin: 0;
 }
 
-.starter-template-dialog {
+.shadcn-dialog-content.starter-template-dialog {
   max-height: min(860px, calc(100dvh - 48px));
   max-width: none;
   overflow-y: auto;
-  width: min(920px, calc(100vw - 48px));
+  width: min(1080px, calc(100vw - 48px));
 }
 
 .starter-template-copy {
@@ -619,8 +619,12 @@ label {
   padding: 8px 10px;
 }
 
+.field-template-button {
+  margin-left: 4px;
+}
+
 @media (max-width: 720px) {
-  .starter-template-dialog {
+  .shadcn-dialog-content.starter-template-dialog {
     max-height: calc(100dvh - 32px);
     padding: 24px;
     width: calc(100vw - 24px);

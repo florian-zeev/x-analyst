@@ -4,7 +4,7 @@ import { saveProfile } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { DeliveryScheduleFields } from "@/app/profile/DeliveryScheduleFields";
 import { ProfileFieldInfo } from "@/app/profile/ProfileFieldInfo";
-import { ProfileStarterTemplate } from "@/app/profile/ProfileStarterTemplate";
+import { ProfileStarterTemplateButton } from "@/app/profile/ProfileStarterTemplate";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage({
@@ -31,7 +31,6 @@ export default async function ProfilePage({
             interest profile used for each brief.
           </p>
         </div>
-        <ProfileStarterTemplate />
       </div>
       {params.message ? (
         <p className={`notice ${noticeType(params.type)}`}>{params.message}</p>
@@ -48,6 +47,7 @@ export default async function ProfilePage({
             label="X list ID"
             requirement="Optional"
             infoTitle="X list ID"
+            template={<ProfileStarterTemplateButton fieldId="xListId" />}
           >
             <p>
               Adds posts from a curated X list to each brief. This is useful
@@ -71,6 +71,7 @@ export default async function ProfilePage({
             label="Discovery queries"
             requirement="Optional"
             infoTitle="Discovery queries"
+            template={<ProfileStarterTemplateButton fieldId="discoveryQueries" />}
           >
             <p>
               Adds search-based discovery beyond your X list. Put one query per
@@ -95,6 +96,7 @@ export default async function ProfilePage({
             label="Priority X handles"
             requirement="Optional"
             infoTitle="Priority X handles"
+            template={<ProfileStarterTemplateButton fieldId="priorityHandles" />}
           >
             <p>
               Gives extra attention to specific X accounts when their posts
@@ -146,6 +148,7 @@ export default async function ProfilePage({
             label="Markdown interest profile"
             requirement="Required"
             infoTitle="Markdown interest profile"
+            template={<ProfileStarterTemplateButton fieldId="interestProfileMd" />}
           >
             <p>
               This is the core instruction file for the brief. Describe what you
@@ -199,12 +202,14 @@ function FieldHeader({
   label,
   requirement,
   infoTitle,
+  template,
   children
 }: {
   htmlFor: string;
   label: string;
   requirement: "Required" | "Optional";
   infoTitle: string;
+  template?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
@@ -214,6 +219,7 @@ function FieldHeader({
         {requirement}
       </span>
       <ProfileFieldInfo title={infoTitle}>{children}</ProfileFieldInfo>
+      {template}
     </div>
   );
 }
