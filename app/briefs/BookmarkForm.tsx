@@ -1,9 +1,24 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
-import { saveCollectionItemInline } from "@/app/dashboard/actions";
-import type { CollectionSaveState } from "@/app/dashboard/actions";
+import {
+  removeCollectionItemInline,
+  saveCollectionItemInline
+} from "@/app/dashboard/actions";
+import type {
+  CollectionRemoveState,
+  CollectionSaveState
+} from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 
 const initialState: CollectionSaveState = {
   type: "idle",
@@ -20,35 +35,92 @@ export function BookmarkForm({
   itemUrl: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(initialSaved);
+  const [toastState, setToastState] = useState<
+    CollectionSaveState | CollectionRemoveState
+  >(initialState);
   const rootRef = useRef<HTMLDivElement>(null);
-  const [state, formAction] = useActionState(
+  const [saveState, formAction] = useActionState(
     saveCollectionItemInline,
+    initialState
+  );
+  const [removeState, removeFormAction] = useActionState(
+    removeCollectionItemInline,
     initialState
   );
 
   useEffect(() => {
-    if (state.type === "success") {
+    if (saveState.type !== "idle") {
+      setToastState(saveState);
+    }
+
+    if (saveState.type === "success") {
       setIsSaved(true);
       rootRef.current?.closest(".brief-item")?.classList.add("is-saved");
       setIsOpen(false);
     }
-  }, [state.type]);
+  }, [saveState.message, saveState.type]);
+
+  useEffect(() => {
+    if (removeState.type !== "idle") {
+      setToastState(removeState);
+    }
+
+    if (removeState.type === "success") {
+      setIsSaved(false);
+      rootRef.current?.closest(".brief-item")?.classList.remove("is-saved");
+      setIsRemoveOpen(false);
+    }
+  }, [removeState.message, removeState.type]);
 
   if (!isOpen) {
     return (
       <div className="bookmark-root" ref={rootRef}>
-        <button
-          aria-label={isSaved ? "Saved to collection" : "Save to collection"}
-          aria-pressed={isSaved}
-          className={`bookmark-button ${isSaved ? "is-saved" : ""}`}
-          title={isSaved ? "Saved to collection" : "Save to collection"}
-          type="button"
-          onClick={() => setIsOpen(true)}
-        >
-          <BookmarkIcon filled={isSaved} />
-        </button>
-        <BookmarkToast state={state} />
+        <Dialog open={isRemoveOpen} onOpenChange={setIsRemoveOpen}>
+          <button
+            aria-label={isSaved ? "Remove from collection" : "Save to collection"}
+            aria-pressed={isSaved}
+            className={`bookmark-button ${isSaved ? "is-saved" : ""}`}
+            title={isSaved ? "Remove from collection" : "Save to collection"}
+            type="button"
+            onClick={() => {
+              if (isSaved) {
+                setIsRemoveOpen(true);
+              } else {
+                setIsOpen(true);
+              }
+            }}
+          >
+            <BookmarkIcon filled={isSaved} />
+          </button>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Really remove?</DialogTitle>
+              <DialogDescription>
+                This will remove the item from your collection. The brief itself
+                will stay unchanged.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <button className="shadcn-button shadcn-button-outline" type="button">
+                  Cancel
+                </button>
+              </DialogClose>
+              <form action={removeFormAction}>
+                <input name="digestId" type="hidden" value={digestId} />
+                <input name="itemUrl" type="hidden" value={itemUrl} />
+                <SubmitButton
+                  className="shadcn-button shadcn-button-danger"
+                  idleLabel="Remove"
+                  pendingLabel="Removing..."
+                />
+              </form>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <BookmarkToast state={toastState} />
       </div>
     );
   }
@@ -76,7 +148,7 @@ export function BookmarkForm({
             Cancel
           </button>
         </div>
-        <BookmarkToast state={state} />
+        <BookmarkToast state={toastState} />
       </form>
     </div>
   );
@@ -85,7 +157,7 @@ export function BookmarkForm({
 function BookmarkToast({
   state
 }: {
-  state: CollectionSaveState;
+  state: CollectionSaveState | CollectionRemoveState;
 }) {
   const [isVisible, setIsVisible] = useState(false);
 

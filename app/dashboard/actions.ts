@@ -14,6 +14,8 @@ export type CollectionSaveState = {
   message: string;
 };
 
+export type CollectionRemoveState = CollectionSaveState;
+
 export async function saveProfile(formData: FormData) {
   const profile = await getCurrentUserProfile();
 
@@ -401,6 +403,89 @@ export async function saveCollectionItemInline(
     type: "success" as const,
     message: "Saved to collection."
   };
+}
+
+export async function removeCollectionItemInline(
+  _previousState: CollectionRemoveState,
+  formData: FormData
+): Promise<CollectionRemoveState> {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    return {
+      type: "error" as const,
+      message: "Sign in again to remove this item."
+    };
+  }
+
+  const digestId = String(formData.get("digestId") ?? "");
+  const itemUrl = String(formData.get("itemUrl") ?? "");
+
+  if (!digestId || !itemUrl) {
+    return {
+      type: "error" as const,
+      message: "Missing collection item."
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("collection_items")
+    .delete()
+    .eq("user_id", profile.userId)
+    .eq("digest_id", digestId)
+    .eq("url", itemUrl);
+
+  if (error) {
+    return {
+      type: "error" as const,
+      message: collectionErrorMessage(error)
+    };
+  }
+
+  revalidatePath("/collection");
+  revalidatePath(`/briefs/${digestId}`);
+  return {
+    type: "success" as const,
+    message: "Removed from collection."
+  };
+}
+
+export async function removeCollectionItem(formData: FormData) {
+  const profile = await getCurrentUserProfile();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const collectionItemId = String(formData.get("collectionItemId") ?? "");
+
+  if (!collectionItemId) {
+    redirect("/collection?type=error&message=Missing collection item.");
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("collection_items")
+    .delete()
+    .eq("user_id", profile.userId)
+    .eq("id", collectionItemId);
+
+  if (error) {
+    redirect(
+      `/collection?type=error&message=${encodeURIComponent(
+        collectionErrorMessage(error)
+      )}`
+    );
+  }
+
+  revalidatePath("/collection");
+  revalidatePath("/briefs");
+  redirect(
+    `/collection?type=success&message=${encodeURIComponent(
+      "Removed from collection."
+    )}`
+  );
 }
 
 export async function saveCollectionItemFromEmail(formData: FormData) {
