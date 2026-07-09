@@ -83,7 +83,7 @@ export function ProfileStarterTemplate() {
     <Dialog>
       <DialogTrigger asChild>
         <button className="secondary-button" type="button">
-          Use starter profile
+          Show starter profile
         </button>
       </DialogTrigger>
       <DialogContent className="starter-template-dialog">
@@ -105,42 +105,39 @@ export function ProfileStarterTemplate() {
             </div>
           </DialogDescription>
         </DialogHeader>
-        <div className="starter-template-preview">
-          <div>
-            <span>X list</span>
-            <p>{starterListId}</p>
-          </div>
-          <div>
-            <span>Discovery queries</span>
-            <p>{starterDiscoveryQueries.split("\n").length} starter queries</p>
-          </div>
-          <div>
-            <span>Priority handles</span>
-            <p>{starterPriorityHandles.split("\n").join(", ")}</p>
-          </div>
+        <div className="starter-template-fields">
+          <StarterFieldPreview
+            fieldId="xListId"
+            label="X list"
+            preview={starterListId}
+          >
+            <p>
+              Florian's list:{" "}
+              <a href={starterListUrl} rel="noreferrer" target="_blank">
+                {starterListUrl}
+              </a>
+            </p>
+          </StarterFieldPreview>
+          <StarterFieldPreview
+            fieldId="discoveryQueries"
+            label="Discovery queries"
+            preview={starterDiscoveryQueries}
+          />
+          <StarterFieldPreview
+            fieldId="priorityHandles"
+            label="Priority handles"
+            preview={starterPriorityHandles}
+          />
+          <StarterFieldPreview
+            fieldId="interestProfileMd"
+            label="Markdown interest profile"
+            preview={starterInterestProfile}
+          />
         </div>
         <DialogFooter>
           <DialogClose asChild>
             <button className="shadcn-button shadcn-button-outline" type="button">
-              Cancel
-            </button>
-          </DialogClose>
-          <DialogClose asChild>
-            <button
-              className="shadcn-button shadcn-button-outline"
-              type="button"
-              onClick={() => applyStarterTemplate("empty")}
-            >
-              Fill empty fields
-            </button>
-          </DialogClose>
-          <DialogClose asChild>
-            <button
-              className="shadcn-button"
-              type="button"
-              onClick={() => applyStarterTemplate("replace")}
-            >
-              Replace fields
+              Done
             </button>
           </DialogClose>
         </DialogFooter>
@@ -149,11 +146,44 @@ export function ProfileStarterTemplate() {
   );
 }
 
-function applyStarterTemplate(mode: "empty" | "replace") {
-  setFieldValue("xListId", starterListId, mode);
-  setFieldValue("discoveryQueries", starterDiscoveryQueries, mode);
-  setFieldValue("priorityHandles", starterPriorityHandles, mode);
-  setFieldValue("interestProfileMd", starterInterestProfile, mode);
+function StarterFieldPreview({
+  fieldId,
+  label,
+  preview,
+  children
+}: {
+  fieldId: "xListId" | "discoveryQueries" | "priorityHandles" | "interestProfileMd";
+  label: string;
+  preview: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <section className="starter-template-field">
+      <div className="starter-template-field-header">
+        <div>
+          <span>{label}</span>
+          {children}
+        </div>
+        <div className="starter-template-actions">
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setFieldValue(fieldId, preview, "empty")}
+          >
+            Fill if empty
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => setFieldValue(fieldId, preview, "replace")}
+          >
+            Start with this
+          </button>
+        </div>
+      </div>
+      <pre>{preview}</pre>
+    </section>
+  );
 }
 
 function setFieldValue(

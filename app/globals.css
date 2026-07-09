@@ -534,7 +534,7 @@ label {
 }
 
 .starter-template-dialog {
-  max-width: 680px;
+  max-width: 760px;
 }
 
 .starter-template-copy {
@@ -552,28 +552,75 @@ label {
   text-underline-offset: 3px;
 }
 
-.starter-template-preview {
-  background: var(--surface);
+.starter-template-fields {
   display: grid;
   gap: 14px;
+}
+
+.starter-template-field {
+  background: var(--surface);
+  display: grid;
+  gap: 12px;
   padding: 16px;
 }
 
-.starter-template-preview div {
+.starter-template-field-header {
+  align-items: start;
   display: grid;
-  gap: 5px;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.starter-template-preview span {
+.starter-template-field span {
   color: var(--muted);
   font-size: 11px;
   text-transform: uppercase;
 }
 
-.starter-template-preview p {
+.starter-template-field p {
   font-size: 14px;
   line-height: 1.45;
+  margin: 6px 0 0;
+}
+
+.starter-template-field a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.starter-template-field pre {
+  background: var(--background);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.55;
   margin: 0;
+  max-height: 260px;
+  overflow: auto;
+  padding: 14px;
+  white-space: pre-wrap;
+}
+
+.starter-template-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.starter-template-actions .secondary-button {
+  padding: 8px 10px;
+}
+
+@media (max-width: 720px) {
+  .starter-template-field-header {
+    grid-template-columns: 1fr;
+  }
+
+  .starter-template-actions {
+    justify-content: flex-start;
+  }
 }
 
 .field-help {
