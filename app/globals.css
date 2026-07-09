@@ -489,9 +489,9 @@ label {
 }
 
 .field-requirement.required {
-  background: var(--ink);
-  border: 1px solid var(--ink);
-  color: #ffffff;
+  background: #ffffff;
+  border: 1px solid var(--danger);
+  color: var(--danger);
 }
 
 .field-requirement.optional {
@@ -741,7 +741,8 @@ textarea {
 }
 
 .button.secondary {
-  background: var(--ink);
+  background: #f1f1f1;
+  color: var(--ink);
 }
 
 .secondary-button {
@@ -943,7 +944,10 @@ textarea {
 
 .shadcn-button {
   align-items: center;
+  background: var(--ink);
+  border: 0;
   border-radius: 4px;
+  color: var(--accent-ink);
   cursor: pointer;
   display: inline-flex;
   font-size: 13px;
@@ -968,13 +972,12 @@ textarea {
 
 .shadcn-button-danger {
   background: var(--danger);
-  border: 1px solid var(--danger);
+  border: 0;
   color: #fff;
 }
 
 .shadcn-button-danger:hover {
   background: var(--danger-hover);
-  border-color: var(--danger-hover);
 }
 
 .reason-select {
