@@ -4,6 +4,7 @@ import { saveProfile } from "@/app/dashboard/actions";
 import { SubmitButton } from "@/app/dashboard/SubmitButton";
 import { DeliveryScheduleFields } from "@/app/profile/DeliveryScheduleFields";
 import { ProfileFieldInfo } from "@/app/profile/ProfileFieldInfo";
+import { ProfileStarterTemplate } from "@/app/profile/ProfileStarterTemplate";
 import { getCurrentUserProfile } from "@/lib/profile";
 
 export default async function ProfilePage({
@@ -30,6 +31,7 @@ export default async function ProfilePage({
             interest profile used for each brief.
           </p>
         </div>
+        <ProfileStarterTemplate />
       </div>
       {params.message ? (
         <p className={`notice ${noticeType(params.type)}`}>{params.message}</p>

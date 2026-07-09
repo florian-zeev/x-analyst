@@ -533,6 +533,49 @@ label {
   margin: 0;
 }
 
+.starter-template-dialog {
+  max-width: 680px;
+}
+
+.starter-template-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.starter-template-copy p {
+  margin: 0;
+}
+
+.starter-template-copy a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.starter-template-preview {
+  background: var(--surface);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.starter-template-preview div {
+  display: grid;
+  gap: 5px;
+}
+
+.starter-template-preview span {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.starter-template-preview p {
+  font-size: 14px;
+  line-height: 1.45;
+  margin: 0;
+}
+
 .field-help {
   color: var(--muted);
   font-size: 12px;
@@ -640,6 +683,28 @@ textarea {
 
 .button.secondary {
   background: var(--ink);
+}
+
+.secondary-button {
+  align-items: center;
+  background: #f1f1f1;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  justify-content: center;
+  letter-spacing: 0.03em;
+  padding: 10px 13px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.secondary-button:hover {
+  background: #e8e8e8;
 }
 
 .button.ghost {
