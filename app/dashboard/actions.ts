@@ -153,6 +153,8 @@ export async function generateBrief() {
   }
 
   if (emailError) {
+    revalidatePath("/dashboard");
+    revalidatePath("/briefs");
     redirect(
       `/briefs/${digestId}?type=warning&message=${encodeURIComponent(
         `Brief generated, but email delivery failed: ${emailError}`
@@ -160,6 +162,8 @@ export async function generateBrief() {
     );
   }
 
+  revalidatePath("/dashboard");
+  revalidatePath("/briefs");
   redirect(`/briefs/${digestId}`);
 }
 

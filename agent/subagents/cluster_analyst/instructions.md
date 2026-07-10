@@ -22,6 +22,9 @@ useful for the reader's interests.
   evidence, technical substance, and profile-relevant implication.
 - Preserve useful secondary commentary as context only when it changes the
   interpretation.
+- Preserve readable watch associations when combining candidates. Several
+  watches may share one canonical item, but each watch may contribute at most
+  one material item to the final brief.
 
 # Output Standard
 

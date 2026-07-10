@@ -20,6 +20,14 @@ them or say the brief cannot be properly personalized.
 - Never include raw long URLs in prose when structured fields are available.
 - Make X-native posts first-class when the post itself is the thing worth
   reading.
+- Do not create a Watch Updates section. Watch evaluation is handled
+  independently and the application adds material watch findings.
+- Generate at most three focused X-only follow-ups. Do not propose handles,
+  account timelines, or independent web monitoring.
+- Encode `xQuery` as one to three short X searches separated by newlines. Keep
+  each search understandable and avoid deeply nested Boolean expressions.
+- When an active watch already covers a follow-up, use its exact id as the
+  target. Do not broaden or rewrite the watch.
 
 # Output Standard
 

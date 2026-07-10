@@ -11,6 +11,11 @@ Use the reader's Markdown interest profile, priority handles, discovery queries,
 and learning feedback as hard context. A candidate that is generally popular or
 AI-related is not enough. It must plausibly matter to this reader.
 
+When active X watches are supplied, compare candidates with each watch objective
+and recent checks. Mark a watch candidate as material only when it adds a
+concrete development, changed behavior, new evidence, or a consequential
+contradiction. Preserve readable watch labels and source URLs with the item.
+
 # What To Optimize
 
 - Recall enough to avoid missing important developments.

@@ -8,6 +8,15 @@ Supabase Postgres for settings and briefs, Vercel AI SDK with direct OpenAI and
 Groq API keys for brief generation,
 Vercel Cron for the daily production schedule, and Vercel Eve for agent tooling.
 
+Suggested follow-ups in new briefs can be turned into focused X watches. A user
+may keep up to five active watches. Watches add bounded X recent searches to the
+normal brief run, never add handles automatically, and report only material,
+deduplicated changes. X Analyst compiles and validates up to three compact
+internal searches per watch; users manage the monitoring objective rather than
+Boolean syntax. Every brief records each active watch as a new signal, no
+material change, or a failed check. Linked pages are read only when an X post
+points to them.
+
 X Analyst is source-available software under the PolyForm Noncommercial License
 1.0.0. Noncommercial use is allowed under the repository license. Commercial
 use, hosted resale, internal company deployment, or derivative SaaS offerings
@@ -78,8 +87,9 @@ The Eve agent includes specialized subagents for higher-quality briefing work:
 - `brief_editor` for final dossier writing.
 
 The `get_analyst_context` Eve tool retrieves the stored Markdown profile,
-priority handles, discovery queries, and learning feedback so delegated work can
-be judged against the reader's actual preferences.
+priority handles, discovery queries, learning feedback, active watches, and
+recent watch checks so delegated work can be judged against the reader's actual
+preferences and existing monitoring questions.
 
 `CRON_SECRET` is also used as the private bearer token for the Next.js API to
 call the Eve HTTP channel. `APP_BASE_URL` is used as the default Eve host; set

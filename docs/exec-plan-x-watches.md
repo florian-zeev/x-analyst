@@ -14,21 +14,22 @@ company blogs, documentation, papers, or release notes.
 
 1. A watch describes **what to monitor**, not additional people to follow.
 2. Watches use the user's existing X list, priority handles, discovery flow,
-   and one watch-specific X recent-search query.
+   and up to three compact, validated watch-specific X recent-search queries.
 3. X Analyst does not propose, validate, or add new X handles in this version.
 4. Linked pages may be read as evidence only after they are discovered through
    an X post.
 5. All watches use the existing brief schedule and delivery destination. There
    is no per-watch frequency, source, or notification form in the MVP.
-6. Only material changes appear. A quiet check produces no brief item or email
-   alert.
+6. Every brief transparently reports each active watch as material, quiet, or
+   failed. Only material changes receive full article treatment.
 7. A user may have at most five active watches. Paused and archived watches do
    not count toward the limit.
 8. If a proposed follow-up is already covered, the product says
    `Already tracked` and links to that watch. It does not mutate or broaden the
    watch automatically.
-9. A watch has exactly one objective and one X query in the MVP. Multi-angle
-   watches and query merging are non-goals.
+9. A watch has exactly one objective. X Analyst compiles that objective into up
+   to three compact internal searches and validates them against X before
+   activation. Users are not expected to maintain query syntax.
 10. Existing briefs containing string follow-ups remain readable.
 
 ## User Experience
@@ -48,9 +49,9 @@ When an active watch already covers the recommendation:
 
 > **Hosted-agent evidence chains**
 >
-> Already covered by Agent infrastructure.
+> Actively tracked by Agent infrastructure.
 >
-> `Already tracked` `View watch`
+> `Actively tracking` `View watch`
 
 `Start watch` uses the generated defaults immediately and displays a bottom
 confirmation with `Undo`. The user does not complete a setup form.
@@ -72,16 +73,17 @@ a responsive list, not a wide table. Each row shows:
 - last meaningful update time, or `No material update yet`.
 
 The primary view shows active watches first. A compact overflow menu provides
-Edit, Pause/Resume, and Archive. Editing exposes only title, objective, and the
-single X search query. A failed query shows `Last check failed` with a concise,
+Edit, Pause/Resume, and Archive. Editing exposes only title and objective;
+internal searches are read-only under `Search details`. A failed query shows `Last check failed` with a concise,
 non-sensitive explanation and leaves the watch active for the next run.
 
 ### Watch updates in briefs
 
-When an active watch finds a material development, render the strongest update
-in a dedicated `Watch Updates` section. Each item names the watch and explains
-what changed since prior coverage. It otherwise uses the existing article
-layout, bookmark, feedback, and linked-source behavior.
+Every brief contains a compact Watches report with one row per active watch.
+Material results identify the strongest update; quiet results state how many
+matching sources were assessed; failures remain visible. Material findings
+also use the existing article layout, bookmark, feedback, and linked-source
+behavior.
 
 The MVP permits at most one material item per watch per brief. A source may
 support more than one watch, but it is rendered once and associated with each

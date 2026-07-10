@@ -1,6 +1,6 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
-import { getLearningContext } from "@/lib/learning";
+import { getBriefingContext } from "@/lib/briefing-context";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export default defineTool({
@@ -37,13 +37,15 @@ export default defineTool({
     const profile = {
       userId: data.user_id,
       email: data.email,
-      digestEmail: data.digest_email,
       interestProfileMd: data.interest_profile_md,
       xListId: data.x_list_id,
       discoveryQueries: data.discovery_queries,
-      priorityHandles: data.priority_handles ?? []
+      priorityHandles: data.priority_handles ?? [],
+      digestEmail: data.digest_email,
+      deliveryTimezone: data.delivery_timezone || "Europe/Berlin",
+      deliveryTime: data.delivery_time || "08:00"
     };
-    const learning = await getLearningContext(profile.userId);
+    const context = await getBriefingContext(profile);
 
     return {
       userId: profile.userId,
@@ -53,7 +55,16 @@ export default defineTool({
       xListId: profile.xListId,
       discoveryQueries: profile.discoveryQueries,
       priorityHandles: profile.priorityHandles,
-      learning
+      learning: context.learning,
+      activeWatches: context.activeWatches.map((watch) => ({
+        id: watch.id,
+        title: watch.title,
+        objective: watch.objective,
+        xQuery: watch.x_query,
+        lastCheckedAt: watch.last_checked_at,
+        lastCheckStatus: watch.last_check_status
+      })),
+      recentWatchChecks: context.recentWatchChecks
     };
   }
 });

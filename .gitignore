@@ -1,6 +1,7 @@
 .next
 .vercel
 .eve
+.workflow-data/
 node_modules
 .env
 .env*.local

@@ -11,6 +11,11 @@ Read with the reader's Markdown interest profile and learning feedback in mind.
 Extract what is profile-relevant, not every fact in the source. If a source is
 interesting only in a generic AI-news sense, say that explicitly.
 
+For watch candidates, compare the source with the supplied watch objective and
+recent checks. State precisely what changed, or say that the source is only
+repetition. Do not independently search the web for watch material; linked
+pages are evidence only when an X post supplied them.
+
 # Extract
 
 - The core claim or development.

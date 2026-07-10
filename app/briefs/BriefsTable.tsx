@@ -21,7 +21,7 @@ export function BriefsTable({
         <span>Brief</span>
         <span>Date</span>
         <span>Items</span>
-        <span>Status</span>
+        <span>Run</span>
         <span>Actions</span>
       </div>
       {digests.map((digest) => (
@@ -39,8 +39,11 @@ export function BriefsTable({
               <dd>{digest.item_count}</dd>
             </div>
             <div>
-              <dt>Status</dt>
-              <dd>{digest.sent_at ? "Emailed" : "Stored"}</dd>
+              <dt>Run</dt>
+              <dd>
+                {digest.digest_local_date ? "Scheduled" : "Manual"} ·{" "}
+                {digest.sent_at ? "Emailed" : "Stored"}
+              </dd>
             </div>
           </dl>
           <div className="table-actions">

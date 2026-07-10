@@ -2,24 +2,46 @@ import { generateObject } from "ai";
 import { Client } from "eve/client";
 import {
   type DailyBrief,
-  dailyBriefSchema,
+  type GeneratedDailyBrief,
   encodeStructuredBrief,
+  generatedDailyBriefSchema,
   parseStructuredBrief,
   structuredBriefToHtml,
-  structuredBriefToMarkdown
+  structuredBriefToMarkdown,
+  type WatchRun,
+  type WatchRunCheck
 } from "@/lib/brief";
+import {
+  getBriefingContext,
+  type BriefingContext
+} from "@/lib/briefing-context";
 import { fetchArticle, type ArticleSnapshot } from "@/lib/article";
 import { sendDigestEmail } from "@/lib/email";
-import { getLearningContext } from "@/lib/learning";
 import { type AnalystProfile } from "@/lib/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { fetchXPosts, type XPost } from "@/lib/x";
+import {
+  fetchXPosts,
+  type XPost
+} from "@/lib/x";
 import {
   canCreateCollectionSaveLinks,
   createCollectionSaveToken
 } from "@/lib/collection-token";
 import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
 import { briefingModel } from "@/lib/ai-model";
+import {
+  finalizeWatchChecks,
+  type Watch
+} from "@/lib/watches";
+import { watchCoversFollowup, watchQueries } from "@/lib/watch-helpers";
+import {
+  evaluateWatches,
+  type WatchAssessment
+} from "@/lib/watch-evaluation";
+
+const FALLBACK_CANDIDATE_LIMIT = 30;
+const BRIEF_ITEM_LIMIT = 10;
+const EVE_WORKFLOW_TIMEOUT_MS = 120_000;
 
 export type DigestItem = {
   post: XPost;
@@ -32,6 +54,7 @@ export type RunDigestOptions = {
   deliveryTime?: string | null;
   runId?: string;
   trigger?: "manual" | "schedule";
+  activeWatches?: Watch[];
 };
 
 export type StoredDigestForEmail = {
@@ -40,6 +63,7 @@ export type StoredDigestForEmail = {
   body_md: string;
   sent_at: string | null;
   digest_delivery_time?: string | null;
+  watch_state_finalized_at?: string | null;
 };
 
 type StoredDocumentRef = {
@@ -71,13 +95,21 @@ export async function runDigestForProfile(
     priorityHandleCount: profile.priorityHandles.length
   });
 
-  const posts = await fetchXPosts({
+  const context = await getBriefingContext(profile, options.activeWatches);
+  const xResult = await fetchXPosts({
     listId: profile.xListId,
-    discoveryQueries: profile.discoveryQueries
+    discoveryQueries: profile.discoveryQueries,
+    watches: context.activeWatches.map((watch) => ({
+      id: watch.id,
+      queries: watchQueries(watch.x_query)
+    }))
   });
   logBriefEvent("brief_posts_fetched", {
     ...logContext,
-    postCount: posts.length
+    postCount: xResult.posts.length,
+    activeWatchCount: context.activeWatches.length,
+    watchErrorCount: xResult.watchErrors.length,
+    sourceCounts: xResult.sourceCounts
   });
 
   const storedDocuments = await getStoredDocumentRefs(profile.userId);
@@ -88,7 +120,7 @@ export async function runDigestForProfile(
     rejectedUrlCount: rejectedUrls.size
   });
 
-  const collectedItems = await collectArticles(posts, storedDocuments);
+  const collectedItems = await collectArticles(xResult.posts, storedDocuments);
   const items = filterRejectedItems(collectedItems, rejectedUrls);
   logBriefEvent("brief_candidates_collected", {
     ...logContext,
@@ -97,7 +129,16 @@ export async function runDigestForProfile(
     filteredRejectedCount: collectedItems.length - items.length
   });
 
-  const brief = await writeBriefWithEveFallback(profile, items, logContext);
+  const [generatedBrief, watchAssessments] = await Promise.all([
+    writeBriefWithEveFallback(context, items, logContext),
+    evaluateWatches({ context, items, xResult })
+  ]);
+  const { brief, watchRun } = enrichBrief({
+    generatedBrief,
+    items,
+    context,
+    watchAssessments
+  });
   const briefItemCount = countBriefItems(brief);
   logBriefEvent("brief_written", {
     ...logContext,
@@ -105,7 +146,7 @@ export async function runDigestForProfile(
     itemCount: briefItemCount
   });
 
-  const body = encodeStructuredBrief(brief);
+  const body = encodeStructuredBrief(brief, watchRun);
   const subject = `X Analyst Brief - ${new Date().toISOString().slice(0, 10)}`;
 
   const admin = createAdminClient();
@@ -133,7 +174,7 @@ export async function runDigestForProfile(
     itemCount: briefItemCount
   });
 
-  await storeDigestItemsForBrief({
+  const storedItemIds = await storeDigestItemsForBrief({
     digestId: digest.id,
     userId: profile.userId,
     subject,
@@ -146,6 +187,27 @@ export async function runDigestForProfile(
     digestId: digest.id,
     itemCount: briefItemCount
   });
+
+  if (watchRun.checks.length) {
+    await finalizeWatchChecks({
+      userId: profile.userId,
+      digestId: digest.id,
+      checks: watchRun.checks.map((check) => ({
+        ...check,
+        digestItemId: storedItemIds.get(normalizeUrl(check.sourceUrl)) ?? null
+      }))
+    });
+    logBriefEvent("brief_watch_checks_finalized", {
+      ...logContext,
+      digestId: digest.id,
+      checkCount: watchRun.checks.length,
+      materialCount: watchRun.checks.filter(
+        (check) => check.status === "material"
+      ).length,
+      errorCount: watchRun.checks.filter((check) => check.status === "error")
+        .length
+    });
+  }
 
   const deliveryEmail = profile.digestEmail ?? profile.email;
   let sentAt: string | null = null;
@@ -160,11 +222,13 @@ export async function runDigestForProfile(
       const result = await sendDigestEmail({
         to: deliveryEmail,
         subject,
-        markdown: structuredBriefToMarkdown(brief),
+        markdown: structuredBriefToMarkdown(brief, watchRun),
         html: structuredBriefToHtml(brief, {
+          watchRun,
           saveUrlForItem: canCreateCollectionSaveLinks()
             ? (item) => collectionSaveUrl(profile.userId, digest.id, item.url)
-            : undefined
+            : undefined,
+          followupUrl: (followup) => followupBriefUrl(digest.id, followup.id)
         })
       });
 
@@ -197,6 +261,13 @@ export async function runDigestForProfile(
       deliveryEmail: maskEmail(deliveryEmail)
     });
   }
+
+  logBriefEvent("brief_generation_completed", {
+    ...logContext,
+    digestId: digest.id,
+    itemCount: briefItemCount,
+    emailError
+  });
 
   return {
     id: digest.id,
@@ -246,15 +317,39 @@ export async function sendStoredDigestEmail(
   }
 
   try {
+    if (
+      !digest.watch_state_finalized_at &&
+      structured.watchRun.checks.length > 0
+    ) {
+      const itemIds = await getStoredDigestItemIds(digest.id, profile.userId);
+      await finalizeWatchChecks({
+        userId: profile.userId,
+        digestId: digest.id,
+        checks: structured.watchRun.checks.map((check) => ({
+          ...check,
+          digestItemId: itemIds.get(normalizeUrl(check.sourceUrl)) ?? null
+        }))
+      });
+      logBriefEvent("stored_brief_watch_checks_repaired", {
+        ...logContext,
+        checkCount: structured.watchRun.checks.length
+      });
+    }
+
     logBriefEvent("stored_brief_email_retry_started", logContext);
     const result = await sendDigestEmail({
       to: deliveryEmail,
       subject: digest.subject,
-      markdown: structuredBriefToMarkdown(structured.brief),
+      markdown: structuredBriefToMarkdown(
+        structured.brief,
+        structured.watchRun
+      ),
       html: structuredBriefToHtml(structured.brief, {
+        watchRun: structured.watchRun,
         saveUrlForItem: canCreateCollectionSaveLinks()
           ? (item) => collectionSaveUrl(profile.userId, digest.id, item.url)
-          : undefined
+          : undefined,
+        followupUrl: (followup) => followupBriefUrl(digest.id, followup.id)
       })
     });
 
@@ -332,7 +427,7 @@ export async function storeDigestItemsForBrief({
   );
 
   if (!rows.length) {
-    return;
+    return new Map<string, string>();
   }
 
   const admin = createAdminClient();
@@ -360,12 +455,31 @@ export async function storeDigestItemsForBrief({
         });
 
       if (!fallbackError) {
-        return;
+        return getStoredDigestItemIds(digestId, userId);
       }
     }
 
     throw error;
   }
+
+  return getStoredDigestItemIds(digestId, userId);
+}
+
+async function getStoredDigestItemIds(digestId: string, userId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("digest_items")
+    .select("id,url")
+    .eq("digest_id", digestId)
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return new Map(
+    (data ?? []).map((item) => [normalizeUrl(item.url), item.id] as const)
+  );
 }
 
 function collectionSaveUrl(userId: string, digestId: string, url: string) {
@@ -382,6 +496,17 @@ function collectionSaveUrl(userId: string, digestId: string, url: string) {
 
   return `${baseUrl.replace(/\/$/, "")}/collection/save?token=${encodeURIComponent(
     token
+  )}`;
+}
+
+function followupBriefUrl(digestId: string, followupId: string) {
+  const baseUrl = process.env.APP_BASE_URL;
+  if (!baseUrl) {
+    return undefined;
+  }
+
+  return `${baseUrl.replace(/\/$/, "")}/briefs/${digestId}#followup-${encodeURIComponent(
+    followupId
   )}`;
 }
 
@@ -499,9 +624,8 @@ function filterRejectedItems(items: DigestItem[], rejectedUrls: Set<string>) {
   );
 }
 
-async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
-  const learning = await getLearningContext(profile.userId);
-
+async function writeBrief(context: BriefingContext, items: DigestItem[]) {
+  const { profile, learning } = context;
   if (items.length === 0) {
     return {
       title: "Daily Brief" as const,
@@ -518,14 +642,14 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
         }
       ],
       followups: []
-    };
+    } satisfies GeneratedDailyBrief;
   }
 
-  const sourcePack = formatSourcePack(profile, items);
+  const sourcePack = formatSourcePack(context, items);
 
   const { object } = await generateObject({
     model: briefingModel(),
-    schema: dailyBriefSchema,
+    schema: generatedDailyBriefSchema,
     system: [
       "You are a senior analyst writing a daily brief for the domain described by the reader's interest profile.",
       "Rank ruthlessly against the reader's stated interests.",
@@ -550,11 +674,15 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
         ? profile.priorityHandles.map((handle) => `@${handle}`).join(", ")
         : "None configured",
       "",
+      "Active X watches:",
+      formatWatchContext(context),
+      "",
       "If an item comes from a priority handle, treat that as a signal to inspect it more carefully and consider elevating it when the substance matches the reader profile. Do not include it solely because of the handle.",
       "Diversity is part of quality. Avoid multiple items that say the same thing from the same handle, organization, publication, project, person, or topic cluster.",
       "If a priority handle posts a thread or several related updates about the same announcement, choose the single most canonical or information-rich post and summarize the cluster once.",
       "Do not include more than two items from the same priority handle in the priority-source section unless they are clearly unrelated stories.",
       "Prefer a varied brief across authors, sources, organizations, developments, debates, research, evidence, and signals over exhaustive coverage of one source.",
+      `Include no more than ${BRIEF_ITEM_LIMIT} items total across all sections.`,
       "",
       "Create a concise structured brief with title exactly: Daily Brief.",
       "",
@@ -566,23 +694,31 @@ async function writeBrief(profile: AnalystProfile, items: DigestItem[]) {
       "Signals",
       "X-Native Reads",
       "Interesting But Lower Priority",
+      "Focus Tracker Updates",
       "",
       "Use Priority Sources for substantive items from configured priority X handles. That section must only contain items whose Priority author field is yes.",
       "Each item must have title, sourceLabel, url, viaHandle, viaUrl, sourceType, why, takeaway, and tags.",
       "Set viaHandle and viaUrl to empty strings; the application will attach exact X provenance after generation.",
       "Do not assign numeric ratings. They create false precision. Rank through section placement and concise prose instead.",
-      "When citing X-native items, url must link to the X post and why must describe why the post itself is worth reading."
+      "When citing X-native items, url must link to the X post and why must describe why the post itself is worth reading.",
+      "Do not create a Focus Tracker Updates section. A separate focus-tracker evaluator adds independently assessed results.",
+      "Generate at most three suggested follow-ups. Every follow-up must include title, description, watchTitle, watchObjective, xQuery, and targetWatchId.",
+      "If an active watch already covers the follow-up, set targetWatchId to its exact id. Otherwise set targetWatchId to null.",
+      "Follow-ups must be focused X monitoring questions. Do not propose handles, account timelines, or independent web monitoring.",
+      "For xQuery, return one to three short X searches separated by newline characters. Keep each search understandable and under 160 characters. Avoid deeply nested Boolean expressions."
     ].join("\n")
   });
 
   return dedupeBriefItems(diversifyBrief(attachTweetProvenance(object, items)));
 }
 
-async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
-  const learning = await getLearningContext(profile.userId);
-
+async function writeBriefWithEve(
+  context: BriefingContext,
+  items: DigestItem[]
+) {
+  const { profile, learning } = context;
   if (items.length === 0) {
-    return writeBrief(profile, items);
+    return writeBrief(context, items);
   }
 
   const cronSecret = process.env.CRON_SECRET;
@@ -597,9 +733,18 @@ async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
     }
   });
   const session = client.session();
-  const response = await session.send<DailyBrief>({
-    outputSchema: dailyBriefSchema,
-    message: [
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(),
+    EVE_WORKFLOW_TIMEOUT_MS
+  );
+  let result;
+
+  try {
+    const response = await session.send<GeneratedDailyBrief>({
+      outputSchema: generatedDailyBriefSchema,
+      signal: controller.signal,
+      message: [
       "Generate the production X Analyst daily brief using the staged subagent workflow.",
       "",
       "You must use the reader profile and learning context below as the briefing contract.",
@@ -615,43 +760,65 @@ async function writeBriefWithEve(profile: AnalystProfile, items: DigestItem[]) {
           interestProfileMd: profile.interestProfileMd,
           priorityHandles: profile.priorityHandles,
           discoveryQueries: profile.discoveryQueries,
-          learning
+          learning,
+          activeWatches: context.activeWatches.map((watch) => ({
+            id: watch.id,
+            title: watch.title,
+            objective: watch.objective,
+            xQuery: watch.x_query
+          })),
+          recentWatchChecks: context.recentWatchChecks
         },
         null,
         2
       ),
       "",
       "Candidate items from X, including X-native long posts/articles and linked articles:",
-      formatSourcePack(profile, items),
+      formatSourcePack(context, items),
       "",
       "Editorial requirements:",
       "- Title must be exactly Daily Brief.",
       "- Prefer fewer, higher-signal items.",
+      `- Include no more than ${BRIEF_ITEM_LIMIT} items total across all sections.`,
       "- Avoid duplicates and near-duplicates.",
       "- Use Priority Sources only for substantive items from configured priority handles.",
       "- Do not assign numeric ratings.",
       "- For X-native items, url must point to the X post itself.",
-      "- Set viaHandle and viaUrl to empty strings; the app attaches exact X provenance after generation."
-    ].join("\n")
-  });
+      "- Set viaHandle and viaUrl to empty strings; the app attaches exact X provenance after generation.",
+      "- Do not create a Focus Tracker Updates section. A separate focus-tracker evaluator adds independently assessed results.",
+      "- Generate at most three focused X-only follow-ups with every schema field supplied.",
+      "- If an active watch already covers a follow-up, use its exact id as targetWatchId; otherwise use null.",
+      "- Never propose handles, account timelines, or independent web monitoring.",
+      "- For xQuery, return one to three short X searches separated by newline characters. Keep each under 160 characters and avoid deeply nested Boolean expressions."
+      ].join("\n")
+    });
 
-  const result = await response.result();
+    result = await response.result();
+  } finally {
+    clearTimeout(timeout);
+    // Eve's session endpoint remains open after a turn boundary. Abort the
+    // consumed stream so Next does not wait for its fetch-cache clone.
+    controller.abort();
+  }
 
   if (result.status !== "completed" || !result.data) {
+    const eventTypes = result.events.map((event) => event.type).join(", ");
     throw new Error(
       `Eve brief workflow failed with status ${result.status}: ${
         result.message || "No structured result."
-      }`
+      }${eventTypes ? ` Events: ${eventTypes}` : ""}`
     );
   }
 
   return dedupeBriefItems(
-    diversifyBrief(attachTweetProvenance(dailyBriefSchema.parse(result.data), items))
+    diversifyBrief(
+      attachTweetProvenance(generatedDailyBriefSchema.parse(result.data), items)
+    )
   );
 }
 
 async function writeBriefWithEveFallback(
-  profile: AnalystProfile,
+  context: BriefingContext,
   items: DigestItem[],
   logContext: Record<string, unknown>
 ) {
@@ -660,7 +827,7 @@ async function writeBriefWithEveFallback(
       ...logContext,
       candidateItemCount: items.length
     });
-    const brief = await writeBriefWithEve(profile, items);
+    const brief = await writeBriefWithEve(context, items);
     logBriefEvent("brief_eve_workflow_completed", {
       ...logContext,
       sectionCount: brief.sections.length,
@@ -672,7 +839,10 @@ async function writeBriefWithEveFallback(
       ...logContext,
       candidateItemCount: items.length
     });
-    const brief = await writeBrief(profile, items);
+    const brief = await writeBrief(
+      context,
+      selectFallbackCandidates(items, FALLBACK_CANDIDATE_LIMIT)
+    );
     logBriefEvent("brief_direct_writer_completed_after_eve_fallback", {
       ...logContext,
       sectionCount: brief.sections.length,
@@ -682,7 +852,11 @@ async function writeBriefWithEveFallback(
   }
 }
 
-function formatSourcePack(profile: AnalystProfile, items: DigestItem[]) {
+function formatSourcePack(context: BriefingContext, items: DigestItem[]) {
+  const { profile } = context;
+  const watches = new Map(
+    context.activeWatches.map((watch) => [watch.id, watch] as const)
+  );
   return items
     .map((item, index) =>
       [
@@ -692,14 +866,37 @@ function formatSourcePack(profile: AnalystProfile, items: DigestItem[]) {
         `Author: ${formatAuthor(item.post)}`,
         `Priority author: ${isPriorityAuthor(item.post, profile.priorityHandles) ? "yes" : "no"}`,
         `Source: ${item.post.source}`,
+        `Matching watches: ${
+          item.post.watchIds.length
+            ? item.post.watchIds
+                .map((id) => {
+                  const watch = watches.get(id);
+                  return watch ? `${watch.title} (${watch.id})` : id;
+                })
+                .join(", ")
+            : "none"
+        }`,
         `URL: ${item.article.finalUrl}`,
         `Host: ${hostLabel(item.article.finalUrl)}`,
         `Title: ${item.article.title}`,
         `Description: ${item.article.description}`,
-        `Article excerpt: ${item.article.text.slice(0, 1800)}`
+        `Article excerpt: ${item.article.text.slice(0, 1200)}`
       ].join("\n")
     )
     .join("\n\n---\n\n");
+}
+
+function formatWatchContext(context: BriefingContext) {
+  if (!context.activeWatches.length) {
+    return "None configured";
+  }
+
+  return context.activeWatches
+    .map(
+      (watch) =>
+        `- ${watch.title} (${watch.id}): ${watch.objective} | X query: ${watch.x_query}`
+    )
+    .join("\n");
 }
 
 function resolveEveHost() {
@@ -711,7 +908,7 @@ function resolveEveHost() {
 }
 
 function attachTweetProvenance(
-  brief: DailyBrief,
+  brief: GeneratedDailyBrief,
   items: DigestItem[]
 ) {
   return {
@@ -732,7 +929,7 @@ function attachTweetProvenance(
   };
 }
 
-function diversifyBrief(brief: DailyBrief) {
+function diversifyBrief(brief: GeneratedDailyBrief) {
   const totalByHandle = new Map<string, number>();
 
   return {
@@ -769,7 +966,7 @@ function diversifyBrief(brief: DailyBrief) {
   };
 }
 
-function dedupeBriefItems(brief: DailyBrief) {
+function dedupeBriefItems(brief: GeneratedDailyBrief) {
   const seen = createDocumentMemory([]);
 
   return {
@@ -797,7 +994,201 @@ function dedupeBriefItems(brief: DailyBrief) {
   };
 }
 
-function countBriefItems(brief: DailyBrief) {
+function enrichBrief(options: {
+  generatedBrief: GeneratedDailyBrief;
+  items: DigestItem[];
+  context: BriefingContext;
+  watchAssessments: WatchAssessment[];
+}): { brief: DailyBrief; watchRun: WatchRun } {
+  const activeWatchIds = new Set(
+    options.context.activeWatches.map((watch) => watch.id)
+  );
+  const claimedWatchIds = new Set<string>();
+  const assessments = new Map(
+    options.watchAssessments.map((assessment) => [
+      assessment.watchId,
+      assessment
+    ])
+  );
+  const watchItems: DailyBrief["sections"][number]["items"] = [];
+  const ordinarySections: DailyBrief["sections"] = [];
+
+  for (const section of options.generatedBrief.sections) {
+    const ordinaryItems: DailyBrief["sections"][number]["items"] = [];
+
+    for (const item of section.items) {
+      const sourceItem = findSourceItem(item.url, options.items);
+      const watchIds = (sourceItem?.post.watchIds ?? []).filter(
+        (watchId) =>
+          activeWatchIds.has(watchId) &&
+          !claimedWatchIds.has(watchId) &&
+          assessments.get(watchId)?.status === "material" &&
+          normalizeUrl(assessments.get(watchId)?.sourceUrl ?? "") ===
+            normalizeUrl(item.url)
+      );
+      const enrichedItem = { ...item, watchIds };
+
+      if (watchIds.length) {
+        watchIds.forEach((watchId) => claimedWatchIds.add(watchId));
+        watchItems.push(enrichedItem);
+      } else {
+        ordinaryItems.push(enrichedItem);
+      }
+    }
+
+    if (
+      ordinaryItems.length ||
+      (section.items.length === 0 &&
+        section.title !== "Watch Updates" &&
+        section.title !== "Tracker Updates" &&
+        section.title !== "Focus Tracker Updates")
+    ) {
+      ordinarySections.push({ ...section, items: ordinaryItems });
+    }
+  }
+
+  for (const watch of options.context.activeWatches) {
+    const assessment = assessments.get(watch.id);
+    if (
+      !assessment ||
+      assessment.status !== "material" ||
+      claimedWatchIds.has(watch.id)
+    ) {
+      continue;
+    }
+
+    const sourceItem = findSourceItem(assessment.sourceUrl, options.items);
+    if (!sourceItem) {
+      continue;
+    }
+
+    const existing = watchItems.find(
+      (item) => normalizeUrl(item.url) === normalizeUrl(assessment.sourceUrl)
+    );
+    if (existing) {
+      existing.watchIds.push(watch.id);
+    } else {
+      watchItems.push(watchItemFromAssessment(assessment, sourceItem, watch.id));
+    }
+    claimedWatchIds.add(watch.id);
+  }
+
+  let remainingItemCapacity = Math.max(
+    0,
+    BRIEF_ITEM_LIMIT - watchItems.length
+  );
+  const cappedOrdinarySections = ordinarySections
+    .map((section) => {
+      const items = section.items.slice(0, remainingItemCapacity);
+      remainingItemCapacity -= items.length;
+      return { ...section, items };
+    })
+    .filter((section) => section.items.length > 0 || section.id === "quiet-feed");
+  const sections: DailyBrief["sections"] = watchItems.length
+    ? [
+        {
+          id: "watch-updates",
+          title: "Focus Tracker Updates",
+          summary: "Material changes found by your focus trackers.",
+          items: watchItems
+        },
+        ...cappedOrdinarySections
+      ]
+    : cappedOrdinarySections;
+  const followups = options.generatedBrief.followups.map((followup) => ({
+    ...followup,
+    id: crypto.randomUUID(),
+    targetWatchId: options.context.activeWatches.some(
+      (watch) =>
+        watch.id === followup.targetWatchId &&
+        watchCoversFollowup(watch, followup)
+    )
+      ? followup.targetWatchId
+      : null,
+    actionable: true
+  }));
+  const brief: DailyBrief = {
+    ...options.generatedBrief,
+    sections,
+    followups
+  };
+  const checks: WatchRunCheck[] = options.context.activeWatches.map((watch) => {
+    const assessment = assessments.get(watch.id);
+    if (!assessment || assessment.errorMessage) {
+      return {
+        watchId: watch.id,
+        watchTitle: watch.title,
+        watchObjective: watch.objective,
+        status: "error",
+        matchedPostCount: assessment?.matchedPostCount ?? 0,
+        sourceUrl: "",
+        headline: "",
+        evidenceSummary: "",
+        errorMessage: assessment?.errorMessage ?? "Watch evaluation was unavailable."
+      };
+    }
+
+    if (assessment.status === "material" && claimedWatchIds.has(watch.id)) {
+      return {
+        watchId: watch.id,
+        watchTitle: watch.title,
+        watchObjective: watch.objective,
+        status: "material",
+        matchedPostCount: assessment.matchedPostCount,
+        sourceUrl: assessment.sourceUrl,
+        headline: assessment.headline,
+        evidenceSummary: assessment.evidenceSummary,
+        errorMessage: ""
+      };
+    }
+
+    return {
+      watchId: watch.id,
+      watchTitle: watch.title,
+      watchObjective: watch.objective,
+      status: "quiet",
+      matchedPostCount: assessment.matchedPostCount,
+      sourceUrl: "",
+      headline: "",
+      evidenceSummary: "",
+      errorMessage: ""
+    };
+  });
+
+  return { brief, watchRun: { checks } };
+}
+
+function watchItemFromAssessment(
+  assessment: WatchAssessment,
+  source: DigestItem,
+  watchId: string
+): DailyBrief["sections"][number]["items"][number] {
+  const isXNative = source.kind === "x";
+  return {
+    title: assessment.headline || source.article.title,
+    sourceLabel: isXNative
+      ? formatAuthor(source.post)
+      : hostLabel(source.article.finalUrl),
+    url: source.article.finalUrl,
+    viaHandle: source.post.authorUsername
+      ? `@${source.post.authorUsername}`
+      : source.post.authorName ?? "",
+    viaUrl: xPostUrl(source.post),
+    sourceType: isXNative ? "x-native" : "external",
+    why: assessment.evidenceSummary,
+    takeaway: assessment.takeaway,
+    tags: assessment.tags,
+    watchIds: [watchId]
+  };
+}
+
+function selectFallbackCandidates(items: DigestItem[], limit: number) {
+  const watchItems = items.filter((item) => item.post.watchIds.length > 0);
+  const ordinaryItems = items.filter((item) => item.post.watchIds.length === 0);
+  return [...watchItems, ...ordinaryItems].slice(0, limit);
+}
+
+function countBriefItems(brief: GeneratedDailyBrief | DailyBrief) {
   return brief.sections.reduce(
     (total, section) => total + section.items.length,
     0

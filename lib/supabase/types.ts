@@ -58,6 +58,7 @@ export type Database = {
           item_count: number;
           digest_local_date: string | null;
           digest_delivery_time: string | null;
+          watch_state_finalized_at: string | null;
           sent_at: string | null;
           created_at: string;
         };
@@ -68,6 +69,7 @@ export type Database = {
           item_count?: number;
           digest_local_date?: string | null;
           digest_delivery_time?: string | null;
+          watch_state_finalized_at?: string | null;
           sent_at?: string | null;
           created_at?: string;
         };
@@ -77,6 +79,7 @@ export type Database = {
           item_count?: number;
           digest_local_date?: string | null;
           digest_delivery_time?: string | null;
+          watch_state_finalized_at?: string | null;
           sent_at?: string | null;
         };
         Relationships: [];
@@ -269,6 +272,92 @@ export type Database = {
         };
         Relationships: [];
       };
+      watches: {
+        Row: {
+          id: string;
+          user_id: string;
+          title: string;
+          objective: string;
+          x_query: string;
+          status: "active" | "paused" | "archived";
+          source_digest_id: string | null;
+          source_followup_id: string | null;
+          last_checked_at: string | null;
+          last_check_status: "quiet" | "material" | "error" | null;
+          last_error: string | null;
+          last_material_update_at: string | null;
+          quiet_run_count: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          objective: string;
+          x_query: string;
+          status?: "active" | "paused" | "archived";
+          source_digest_id?: string | null;
+          source_followup_id?: string | null;
+          last_checked_at?: string | null;
+          last_check_status?: "quiet" | "material" | "error" | null;
+          last_error?: string | null;
+          last_material_update_at?: string | null;
+          quiet_run_count?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          objective?: string;
+          x_query?: string;
+          status?: "active" | "paused" | "archived";
+          last_checked_at?: string | null;
+          last_check_status?: "quiet" | "material" | "error" | null;
+          last_error?: string | null;
+          last_material_update_at?: string | null;
+          quiet_run_count?: number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      watch_checks: {
+        Row: {
+          id: string;
+          watch_id: string;
+          user_id: string;
+          digest_id: string;
+          digest_item_id: string | null;
+          status: "quiet" | "material" | "error";
+          source_url: string | null;
+          headline: string;
+          evidence_summary: string;
+          error_message: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          watch_id: string;
+          user_id: string;
+          digest_id: string;
+          digest_item_id?: string | null;
+          status: "quiet" | "material" | "error";
+          source_url?: string | null;
+          headline?: string;
+          evidence_summary?: string;
+          error_message?: string;
+          created_at?: string;
+        };
+        Update: {
+          digest_item_id?: string | null;
+          status?: "quiet" | "material" | "error";
+          source_url?: string | null;
+          headline?: string;
+          evidence_summary?: string;
+          error_message?: string;
+        };
+        Relationships: [];
+      };
       waitlist_requests: {
         Row: {
           email: string;
@@ -330,6 +419,33 @@ export type Database = {
           selected_tags?: string[];
         };
         Returns: { tag: string }[];
+      };
+      activate_watch_from_followup: {
+        Args: {
+          p_user_id: string;
+          p_source_digest_id: string;
+          p_source_followup_id: string;
+          p_title: string;
+          p_objective: string;
+          p_x_query: string;
+        };
+        Returns: Database["public"]["Tables"]["watches"]["Row"];
+      };
+      finalize_watch_checks: {
+        Args: {
+          p_user_id: string;
+          p_digest_id: string;
+          p_checks: Json;
+        };
+        Returns: undefined;
+      };
+      set_watch_status: {
+        Args: {
+          p_user_id: string;
+          p_watch_id: string;
+          p_status: string;
+        };
+        Returns: Database["public"]["Tables"]["watches"]["Row"];
       };
     };
     Enums: Record<string, never>;

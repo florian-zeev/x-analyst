@@ -1,13 +1,19 @@
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/app/AppShell";
 import { BookmarkForm } from "@/app/briefs/BookmarkForm";
+import { FollowupAction } from "@/app/briefs/FollowupAction";
 import { ItemFeedbackForm } from "@/app/briefs/ItemFeedbackForm";
-import type { DailyBrief } from "@/lib/brief";
+import type { DailyBrief, WatchRun } from "@/lib/brief";
 import { parseStructuredBrief } from "@/lib/brief";
 import { formatDateTime } from "@/lib/date-format";
 import { renderMarkdown } from "@/lib/markdown";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUserProfile } from "@/lib/profile";
+import {
+  getActiveWatches,
+  type Watch
+} from "@/lib/watches";
+import { watchCoversFollowup } from "@/lib/watch-helpers";
 
 export default async function DigestPage({
   params,
@@ -39,11 +45,13 @@ export default async function DigestPage({
   const structured = parseStructuredBrief(digest.body_md);
   let rejectedUrls = new Set<string>();
   let savedUrls = new Set<string>();
+  let activeWatches: Watch[] = [];
 
   if (structured) {
     const [
       { data: rejectedRows, error: rejectedError },
-      { data: savedRows, error: savedError }
+      { data: savedRows, error: savedError },
+      watches
     ] = await Promise.all([
       admin
         .from("digest_items")
@@ -54,7 +62,8 @@ export default async function DigestPage({
       admin
         .from("collection_items")
         .select("url")
-        .eq("user_id", profile.userId)
+        .eq("user_id", profile.userId),
+      getActiveWatches(profile.userId)
     ]);
 
     if (
@@ -71,6 +80,7 @@ export default async function DigestPage({
 
     rejectedUrls = new Set((rejectedRows ?? []).map((item) => item.url));
     savedUrls = new Set((savedRows ?? []).map((item) => item.url));
+    activeWatches = watches;
   }
 
   return (
@@ -95,6 +105,8 @@ export default async function DigestPage({
             rejectedCount={rejectedUrls.size}
             rejectedUrls={rejectedUrls}
             savedUrls={savedUrls}
+            activeWatches={activeWatches}
+            watchRun={structured.watchRun}
           />
         ) : (
           <article className="brief markdown">
@@ -110,13 +122,17 @@ function StructuredBrief({
   digestId,
   rejectedCount,
   rejectedUrls,
-  savedUrls
+  savedUrls,
+  activeWatches,
+  watchRun
 }: {
   brief: DailyBrief;
   digestId: string;
   rejectedCount: number;
   rejectedUrls: Set<string>;
   savedUrls: Set<string>;
+  activeWatches: Watch[];
+  watchRun: WatchRun;
 }) {
   return (
     <article className="brief brief-doc">
@@ -124,6 +140,8 @@ function StructuredBrief({
         <p className="eyebrow">Summary</p>
         <p>{brief.bluf}</p>
       </section>
+
+      {watchRun.checks.length ? <WatchReport watchRun={watchRun} /> : null}
 
       <div className="brief-sections">
         {brief.sections.map((section) => {
@@ -210,11 +228,44 @@ function StructuredBrief({
       {brief.followups.length ? (
         <section className="brief-followups">
           <h2>Suggested Follow-Ups</h2>
-          <ul>
-            {brief.followups.map((followup) => (
-              <li key={followup}>{followup}</li>
-            ))}
-          </ul>
+          <div className="followup-list">
+            {brief.followups.map((followup) => {
+              const startedWatch =
+                activeWatches.find(
+                  (watch) =>
+                    watch.source_digest_id === digestId &&
+                    watch.source_followup_id === followup.id
+                ) ?? null;
+              const coveredWatch =
+                startedWatch ??
+                activeWatches.find(
+                  (watch) =>
+                    watch.id === followup.targetWatchId &&
+                    watchCoversFollowup(watch, followup)
+                ) ??
+                null;
+              return (
+                <FollowupAction
+                  activeWatches={activeWatches.map((watch) => ({
+                    id: watch.id,
+                    title: watch.title
+                  }))}
+                  digestId={digestId}
+                  followup={followup}
+                  key={followup.id}
+                  targetWatch={
+                    coveredWatch
+                      ? {
+                          id: coveredWatch.id,
+                          title: coveredWatch.title,
+                          relationship: startedWatch ? "started" : "covered"
+                        }
+                      : null
+                  }
+                />
+              );
+            })}
+          </div>
         </section>
       ) : null}
 
@@ -230,6 +281,59 @@ function StructuredBrief({
         </section>
       ) : null}
     </article>
+  );
+}
+
+function WatchReport({ watchRun }: { watchRun: WatchRun }) {
+  const materialCount = watchRun.checks.filter(
+    (check) => check.status === "material"
+  ).length;
+
+  return (
+    <section className="watch-report">
+      <div className="watch-report-heading">
+        <h2>Focus trackers</h2>
+        <p className="muted">
+          {watchRun.checks.length} focus tracker
+          {watchRun.checks.length === 1 ? "" : "s"} · {materialCount > 0
+            ? `${materialCount} new signal${materialCount === 1 ? "" : "s"}`
+            : "No new signals"}
+        </p>
+      </div>
+      <div className="watch-report-list">
+        {watchRun.checks.map((check) => (
+          <article className="watch-report-row" key={check.watchId}>
+            <div>
+              <a className="watch-report-title" href={`/watches#watch-${check.watchId}`}>
+                {check.watchTitle}
+              </a>
+              <p>{check.watchObjective}</p>
+            </div>
+            <div className="watch-report-result">
+              <span className={`watch-result ${check.status}`}>
+                {check.status === "material"
+                  ? "New signal"
+                  : check.status === "error"
+                    ? "Check failed"
+                    : "No material change"}
+              </span>
+              {check.status === "material" && check.sourceUrl ? (
+                <a href={check.sourceUrl} rel="noreferrer" target="_blank">
+                  {check.headline}
+                </a>
+              ) : check.status === "error" ? (
+                <p>{check.errorMessage}</p>
+              ) : (
+                <p>
+                  {check.evidenceSummary ||
+                    "No material change since the previous check."}
+                </p>
+              )}
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
   );
 }
 

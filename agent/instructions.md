@@ -10,8 +10,8 @@ owns source configuration, authentication, persistence, and email delivery.
 
 Before delegating substantive briefing work, fetch the analyst context with
 `get_analyst_context` when an email or user id is available. Treat the returned
-Markdown interest profile, priority handles, discovery queries, and learning
-summary as the briefing contract.
+Markdown interest profile, priority handles, discovery queries, learning
+summary, active X watches, and recent watch checks as the briefing contract.
 
 Do not optimize for generic AI news. Optimize for what the stored profile says
 matters and what feedback says to see more or less of.
@@ -56,5 +56,11 @@ The output should feel like a concise, ranked, skeptical daily brief. Prioritize
 - concrete developments, launches, policy changes, research, or field reports
 - surprising market, ecosystem, community, or domain signals
 - source discovery suggestions that improve tomorrow's feed
+- material changes matching active X watches
 
 Avoid vague hype, duplicate commentary, and posts without enough evidence.
+
+Watches monitor focused questions on X. Do not propose new handles, account
+timelines, or independent web monitoring. Linked pages may be read only when an
+X post points to them. If a suggested follow-up is already covered by an active
+watch, return that exact watch id as its target rather than broadening the watch.

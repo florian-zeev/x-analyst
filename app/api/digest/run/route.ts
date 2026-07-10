@@ -8,6 +8,7 @@ import {
 import { getDeliveryDueState } from "@/lib/delivery-schedule";
 import { getCurrentUserProfile, toProfile, type AnalystProfile } from "@/lib/profile";
 import { logBriefError, logBriefEvent, maskEmail } from "@/lib/brief-logs";
+import { getActiveWatches, type Watch } from "@/lib/watches";
 
 export const maxDuration = 300;
 
@@ -73,7 +74,8 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
-        if (!hasConfiguredSources(profile)) {
+        const activeWatches = await getActiveWatches(profile.userId);
+        if (!hasConfiguredSources(profile, activeWatches)) {
           logBriefEvent("cron_profile_skipped", {
             ...profileLog,
             reason: "no_sources_configured"
@@ -154,7 +156,8 @@ export async function GET(request: NextRequest) {
             localDate: dueState.localDate,
             deliveryTime: dueState.deliveryTime,
             runId,
-            trigger: "schedule"
+            trigger: "schedule",
+            activeWatches
           });
           logBriefEvent("cron_profile_generation_completed", {
             ...profileLog,
@@ -223,7 +226,7 @@ async function findDigestForLocalDate(
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("digests")
-    .select("id,subject,body_md,sent_at,created_at,item_count,digest_delivery_time")
+    .select("id,subject,body_md,sent_at,created_at,item_count,digest_delivery_time,watch_state_finalized_at")
     .eq("user_id", userId)
     .eq("digest_local_date", localDate)
     .eq("digest_delivery_time", deliveryTime)
@@ -232,6 +235,29 @@ async function findDigestForLocalDate(
     .maybeSingle();
 
   if (error) {
+    if (isMissingWatchFinalizationColumn(error)) {
+      const { data: fallbackData, error: fallbackError } = await admin
+        .from("digests")
+        .select("id,subject,body_md,sent_at,created_at,item_count,digest_delivery_time")
+        .eq("user_id", userId)
+        .eq("digest_local_date", localDate)
+        .eq("digest_delivery_time", deliveryTime)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fallbackError) {
+        if (isMissingDigestScheduleColumn(fallbackError)) {
+          return null;
+        }
+        throw fallbackError;
+      }
+
+      return fallbackData
+        ? { ...fallbackData, watch_state_finalized_at: null }
+        : null;
+    }
+
     if (isMissingDigestScheduleColumn(error)) {
       return null;
     }
@@ -245,8 +271,22 @@ async function findDigestForLocalDate(
   }) | null;
 }
 
-function hasConfiguredSources(profile: AnalystProfile) {
-  return Boolean(profile.xListId) || profile.discoveryQueries.length > 0;
+function isMissingWatchFinalizationColumn(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    (error.code === "42703" || error.code === "PGRST204") &&
+    Boolean(error.message?.includes("watch_state_finalized_at"))
+  );
+}
+
+function hasConfiguredSources(profile: AnalystProfile, activeWatches: Watch[]) {
+  return (
+    Boolean(profile.xListId) ||
+    profile.discoveryQueries.length > 0 ||
+    activeWatches.length > 0
+  );
 }
 
 function isMissingDigestLocalDateColumn(error: {

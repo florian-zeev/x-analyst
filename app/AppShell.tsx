@@ -12,6 +12,7 @@ const navItems = [
   { href: "/briefs", key: "briefs", label: "Briefs" },
   { href: "/topics", key: "topics", label: "Topics" },
   { href: "/collection", key: "collection", label: "Collection" },
+  { href: "/watches", key: "watches", label: "Focus trackers" },
   { href: "/learning", key: "learning", label: "Learning" },
   { href: "/rejected", key: "rejected", label: "Rejected" },
   { href: "/waitlist", key: "waitlist", label: "Waitlist" }
@@ -27,6 +28,7 @@ export async function AppShell({
     | "briefs"
     | "topics"
     | "collection"
+    | "watches"
     | "waitlist"
     | "rejected"
     | "learning";
