@@ -1,3 +1,11 @@
+import { createHash } from "node:crypto";
+import { logBriefError } from "./brief-logs.ts";
+import {
+  parseXApiErrorBody,
+  publicXErrorMessage,
+  type XApiErrorDetails
+} from "./x-api-error.ts";
+
 export type XPost = {
   id: string;
   text: string;
@@ -65,13 +73,16 @@ async function sampleXWatchQueries(
   token: string
 ): Promise<XWatchQuerySample[]> {
   return Promise.all(
-    queries.slice(0, 3).map(async (query) => {
+    queries.slice(0, 3).map(async (query, index) => {
       try {
         const posts = await fetchTimeline(
           "https://api.x.com/2/tweets/search/recent",
           token,
           { query: withDefaultSearchConstraints(query), max_results: "10" },
-          { id: "watch:validation", label: "watch-validation" }
+          {
+            id: `watch:validation:${index}`,
+            label: "watch-validation"
+          }
         );
         return { query, posts, error: null };
       } catch (error) {
@@ -261,7 +272,36 @@ async function fetchTimeline(
   });
 
   if (!response.ok) {
-    throw new Error(`X API request failed: ${response.status}`);
+    const requestId = crypto.randomUUID();
+    const details = parseXApiErrorBody(await response.text());
+    const query = params.query;
+    const error = new XApiRequestError({
+      status: response.status,
+      requestId,
+      details
+    });
+    logBriefError("x_api_request_failed", error, {
+      requestId,
+      endpoint: url.pathname,
+      sourceId: source.id,
+      watchId: source.watchId ?? null,
+      status: response.status,
+      errorType: details.type,
+      errorTitle: details.title,
+      errorDetail: details.detail,
+      queryHash: query ? hashQuery(query) : null,
+      queryPreview: query ? previewQuery(query) : null,
+      queryLength: query?.length ?? null,
+      xRequestId:
+        response.headers.get("x-request-id") ??
+        response.headers.get("x-transaction-id"),
+      rateLimit: {
+        limit: response.headers.get("x-rate-limit-limit"),
+        remaining: response.headers.get("x-rate-limit-remaining"),
+        reset: response.headers.get("x-rate-limit-reset")
+      }
+    });
+    throw error;
   }
 
   const payload = (await response.json()) as {
@@ -385,10 +425,35 @@ async function mapWithConcurrency<T, R>(
 }
 
 function sanitizeWatchError(error: unknown) {
-  if (!(error instanceof Error)) {
-    return "X watch query failed.";
+  if (error instanceof XApiRequestError) {
+    return publicXErrorMessage(error.status);
   }
+  return "X could not complete this search.";
+}
 
-  const status = error.message.match(/X API request failed: (\d{3})/)?.[1];
-  return status ? `X returned status ${status}.` : "X watch query failed.";
+class XApiRequestError extends Error {
+  readonly status: number;
+  readonly requestId: string;
+  readonly details: XApiErrorDetails;
+
+  constructor(options: {
+    status: number;
+    requestId: string;
+    details: XApiErrorDetails;
+  }) {
+    super(`X API request failed with status ${options.status}.`);
+    this.name = "XApiRequestError";
+    this.status = options.status;
+    this.requestId = options.requestId;
+    this.details = options.details;
+  }
+}
+
+function hashQuery(query: string) {
+  return createHash("sha256").update(query).digest("hex").slice(0, 12);
+}
+
+function previewQuery(query: string) {
+  const normalized = query.replace(/\s+/g, " ").trim();
+  return normalized.length > 120 ? `${normalized.slice(0, 117)}...` : normalized;
 }

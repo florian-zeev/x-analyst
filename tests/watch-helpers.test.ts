@@ -8,6 +8,10 @@ import {
   watchQueries
 } from "../lib/watch-helpers.ts";
 import { interleavePosts, mergePosts, type XPost } from "../lib/x.ts";
+import {
+  parseXApiErrorBody,
+  publicXErrorMessage
+} from "../lib/x-api-error.ts";
 
 test("normalizes a compact X query", () => {
   assert.equal(
@@ -89,6 +93,39 @@ test("reserves capacity for each active watch", () => {
   assert.equal(selected.length, 80);
   assert.equal(selected.filter((item) => item.watchIds.includes("a")).length, 5);
   assert.equal(selected.filter((item) => item.watchIds.includes("b")).length, 5);
+});
+
+test("parses structured X API errors without exposing them to users", () => {
+  assert.deepEqual(
+    parseXApiErrorBody(
+      JSON.stringify({
+        type: "https://api.x.com/2/problems/invalid-request",
+        title: "Invalid Request",
+        detail: "Unmatched quotation mark in query."
+      })
+    ),
+    {
+      type: "https://api.x.com/2/problems/invalid-request",
+      title: "Invalid Request",
+      detail: "Unmatched quotation mark in query."
+    }
+  );
+  assert.equal(
+    publicXErrorMessage(400),
+    "X could not understand one of the searches. Review its terms and quotation marks, then try again."
+  );
+});
+
+test("retains a bounded diagnostic when X returns a non-JSON error", () => {
+  assert.deepEqual(parseXApiErrorBody("upstream failure"), {
+    type: null,
+    title: null,
+    detail: "upstream failure"
+  });
+  assert.equal(
+    publicXErrorMessage(429),
+    "X is temporarily limiting search requests. Try again shortly."
+  );
 });
 
 function post(id: string, sourceIds: string[], watchIds: string[]): XPost {
