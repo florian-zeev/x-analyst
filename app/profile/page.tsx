@@ -69,7 +69,7 @@ export default async function ProfilePage({
           <FieldHeader
             htmlFor="discoveryQueries"
             label="Discovery queries"
-            requirement="Optional"
+            requirement="Required"
             infoTitle="Discovery queries"
             template={<ProfileStarterTemplateButton fieldId="discoveryQueries" />}
           >
@@ -79,8 +79,8 @@ export default async function ProfilePage({
               phrase you want watched.
             </p>
             <p>
-              Optional on its own, but you should provide either an X list or
-              discovery queries so the agent has source material to inspect.
+              Required. These queries give X Analyst the keywords and phrases
+              it uses to discover source material beyond any configured list.
             </p>
           </FieldHeader>
           <textarea
@@ -88,6 +88,7 @@ export default async function ProfilePage({
             name="discoveryQueries"
             defaultValue={profile.discoveryQueries.join("\n")}
             placeholder="One query per line"
+            required
           />
         </div>
         <div className="field">

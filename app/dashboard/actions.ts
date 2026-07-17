@@ -55,6 +55,13 @@ export async function saveProfile(formData: FormData) {
     .split("\n")
     .map((query) => query.trim())
     .filter(Boolean);
+  if (!discoveryQueries.length) {
+    redirect(
+      `/profile?type=error&message=${encodeURIComponent(
+        "Add at least one discovery query before saving your profile."
+      )}`
+    );
+  }
   const priorityHandles = String(formData.get("priorityHandles") ?? "")
     .split("\n")
     .map((handle) => normalizeHandle(handle))
