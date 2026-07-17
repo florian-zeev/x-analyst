@@ -68,7 +68,7 @@ export async function prepareGeneratedWatchQueries(options: {
     if (result.verdict === "useful" || attempt === 2) {
       if (result.verdict === "noisy") {
         throw new Error(
-          `X Analyst could not create sufficiently focused searches. ${result.explanation}`
+          "X Analyst could not create a focused enough search for this tracker. Try making the tracker description more specific."
         );
       }
       return toPreparedQueries(query, result);
@@ -79,7 +79,7 @@ export async function prepareGeneratedWatchQueries(options: {
         return toPreparedQueries(query, result);
       }
       throw new Error(
-        `X Analyst could not refine this watch search. ${result.explanation}`
+        "X Analyst could not create a focused enough search for this tracker. Try making the tracker description more specific."
       );
     }
 
@@ -101,7 +101,7 @@ export async function validateEditedWatchQueries(options: {
       ? ` Try: ${result.revisedQueries.join(" | ")}`
       : "";
     throw new Error(
-      `These searches mostly returned posts unrelated to the watch. ${result.explanation}${suggestion}`
+      `These searches returned mostly unrelated posts.${suggestion}`
     );
   }
   return toPreparedQueries(query, result);
@@ -131,6 +131,7 @@ async function assessWatchQueries(options: {
       "Judge retrieval precision, not whether a post is important enough for a daily brief.",
       "A post is relevant only when its meaning concerns the objective. Shared words with an unrelated meaning do not count.",
       "Classify as noisy when several sampled matches are lexical accidents, spam, scams, or unrelated uses of ambiguous words.",
+      "A search may still be useful when it finds clearly relevant posts alongside some off-topic matches; downstream briefing stages filter individual posts.",
       "Classify as too_narrow when there are no useful samples and the searches require an implausibly specific combination of terms.",
       "A quiet but well-formed technical search may be useful even when it has no current matches.",
       "For useful searches, revisedQueries must be empty.",

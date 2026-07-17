@@ -54,9 +54,10 @@ test("only treats an exact watch contract as covered", () => {
   );
 });
 
-test("rejects a sample set with matches but no relevant posts as noisy", () => {
+test("rejects zero-relevance samples without overruling useful matches", () => {
   assert.equal(resolveWatchQueryQuality("useful", 10, 0), "noisy");
-  assert.equal(resolveWatchQueryQuality("useful", 10, 2), "noisy");
+  assert.equal(resolveWatchQueryQuality("useful", 10, 2), "useful");
+  assert.equal(resolveWatchQueryQuality("noisy", 10, 2), "noisy");
   assert.equal(resolveWatchQueryQuality("too_narrow", 0, 0), "too_narrow");
   assert.equal(resolveWatchQueryQuality("useful", 10, 3), "useful");
 });

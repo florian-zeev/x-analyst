@@ -58,10 +58,7 @@ export function resolveWatchQueryQuality(
   matchedPostCount: number,
   relevantPostCount: number
 ) {
-  if (
-    (matchedPostCount >= 3 && relevantPostCount === 0) ||
-    (matchedPostCount >= 5 && relevantPostCount / matchedPostCount < 0.3)
-  ) {
+  if (matchedPostCount >= 3 && relevantPostCount === 0) {
     return "noisy" as const;
   }
   return verdict;
